@@ -7,6 +7,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -16,14 +17,33 @@ import java.util.List;
 public class StageSelectController extends BorderPane {
     public StageSelectController(){
         initializeStageSelection();
-        Button exit = new Button("Exit");
+
+        Button exit = new Button("Back");
         exit.setOnAction(e -> {
             HomeController homeController = new HomeController();
             this.getScene().setRoot(homeController);
         });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button rule = new Button("Rules");
+        //rule.setOnAction(e -> );
+
+        Button start = new Button("Start");
+        start.setOnAction(e -> {
+            GameOverController gameOverController = new GameOverController();
+            this.getScene().setRoot(gameOverController);
+        });
+
+        HBox hbox = new HBox(20);
+        hbox.setAlignment(Pos.BOTTOM_RIGHT);
+        hbox.setPadding(new Insets(10,10,10,10));
+        hbox.getChildren().addAll(exit,spacer,rule,start);
+
         this.setLeft(stageSelectBar());
         this.setRight(stageInformation());
-        this.setBottom(exit);
+        this.setBottom(hbox);
 
     }
 
@@ -50,7 +70,7 @@ public class StageSelectController extends BorderPane {
         Label information = new Label("information");
 
         GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER);
+        grid.setAlignment(Pos.TOP_RIGHT);
         grid.add(story,0,0);
         grid.add(information,0,1);
 
