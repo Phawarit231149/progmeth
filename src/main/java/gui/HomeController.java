@@ -25,6 +25,11 @@ public class    HomeController extends StackPane {
         settingButton.setOnAction(e -> System.out.println("Settings clicked!"));
         quitButton.setOnAction(e -> System.exit(0));
 
+        startButton.setOnAction(e -> {
+            StageSelectController stageSelectController = new StageSelectController();
+            this.getScene().setRoot(stageSelectController);
+        });
+
         VBox vbox = new VBox(10, title, subtitle, startButton, settingButton, quitButton);
         vbox.setAlignment(Pos.CENTER);
 

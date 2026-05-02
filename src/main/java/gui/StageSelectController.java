@@ -16,8 +16,15 @@ import java.util.List;
 public class StageSelectController extends BorderPane {
     public StageSelectController(){
         initializeStageSelection();
+        Button exit = new Button("Exit");
+        exit.setOnAction(e -> {
+            HomeController homeController = new HomeController();
+            this.getScene().setRoot(homeController);
+        });
         this.setLeft(stageSelectBar());
         this.setRight(stageInformation());
+        this.setBottom(exit);
+
     }
 
     private void initializeStageSelection(){
@@ -49,4 +56,6 @@ public class StageSelectController extends BorderPane {
 
         return grid;
     }
+
+
 }
