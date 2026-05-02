@@ -28,17 +28,17 @@ public class GameOverController extends BorderPane {
 
         Button nextStage = new Button("Next Stage");
         Button retry = new Button("Retry");
-        Button quit = new Button("Quit");
+        Button back = new Button("Back to stage");
 
         nextStage.setPrefSize(200,50);
         retry.setPrefSize(200,50);
-        quit.setPrefSize(200,50);
+        back.setPrefSize(200,50);
 
         nextStage.setOnAction(e -> {});
 
         retry.setOnAction(e -> {});
 
-        quit.setOnAction(e -> {
+        back.setOnAction(e -> {
             StageSelectController stageSelectController = new StageSelectController();
             this.getScene().setRoot(stageSelectController);
         });
@@ -47,7 +47,7 @@ public class GameOverController extends BorderPane {
         VBox vbox = new VBox(20);
         vbox.setAlignment(Pos.CENTER);
         vbox.setPadding(new Insets(50));
-        vbox.getChildren().addAll(title, nextStage, retry, quit);
+        vbox.getChildren().addAll(title, nextStage, retry, back);
 
         this.setCenter(vbox);
 

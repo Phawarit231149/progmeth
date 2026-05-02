@@ -13,9 +13,12 @@ public class RuleController extends BorderPane {
     public RuleController(){
         Label title = new Label("Rule");
         title.setFont(Font.font(30));
+        BorderPane.setMargin(title,new Insets(20,0,0,20));
 
-        Label description = new Label("Description: ");
-        description.setFont(Font.font(20));
+        Label description = new Label("Description: [gsfsgssffseffsfs]\nsefsfsfsfsfesfs");
+        description.setFont(Font.font(24));
+        BorderPane.setMargin(description,new Insets(20,0,0,20));
+
 
         Button back = new Button("Back");
         back.setOnAction(e -> {
@@ -29,7 +32,7 @@ public class RuleController extends BorderPane {
         footer.getChildren().add(back);
 
         this.setTop(title);
-        this.setCenter(description);
+        this.setLeft(description);
         this.setBottom(footer);
     }
 }
