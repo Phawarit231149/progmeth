@@ -10,8 +10,10 @@ import model.StageData;
 
 public class StageSelectController extends BorderPane {
     private int selectedStage = 0;
+    private final Button start;
     private Label stageTitle;
     private Button[] stageButtons;
+    private String selectedElement = "";
 
     public StageSelectController() {
         initializeStageSelection(); // ✅ ต้องมาก่อน
@@ -25,6 +27,7 @@ public class StageSelectController extends BorderPane {
                         "-fx-font-weight: bold;" +
                         "-fx-font-size: 18px;"
         );
+
         back.setOnAction(e -> {
             HomeController homeController = new HomeController();
             this.getScene().setRoot(homeController);
@@ -34,15 +37,23 @@ public class StageSelectController extends BorderPane {
         topPane.setPadding(new Insets(10, 10, 0, 20));
         StackPane.setAlignment(stageTitle, Pos.CENTER_LEFT);
         StackPane.setAlignment(back, Pos.TOP_RIGHT);
-        topPane.getChildren().addAll(stageTitle, back); // ✅ ใช้ stageTitle แทน title
+        topPane.getChildren().addAll(stageTitle, back);
 
         Button rule = createFooterButton("Rule");
-        Button start = createFooterButton("Start");
+        this.start = createFooterButton("Start");
+
+        rule.setOnAction(e -> {
+            RuleController ruleController = new RuleController();
+            this.getScene().setRoot(ruleController);
+        });
+
         start.setOnAction(e -> {
             StageData config = StageData.ALL_STAGES[selectedStage];
             GameController gameController = new GameController(config);
             this.getScene().setRoot(gameController);
         });
+
+        start.setDisable(true);
 
         HBox hbox = new HBox(20);
         hbox.setAlignment(Pos.BOTTOM_RIGHT);
@@ -118,17 +129,31 @@ public class StageSelectController extends BorderPane {
         Button electric = createMainButton("Electric");
         characterBox.getChildren().addAll(fire, water, electric);
 
-        Label choosingCharacter = new Label("Character :");
+        Label choosingCharacter = new Label("Character :   None");
         choosingCharacter.setFont(Font.font(20));
-        fire.setOnAction(e -> choosingCharacter.setText("Character :   Fire"));
-        water.setOnAction(e -> choosingCharacter.setText("Character :   Water"));
-        electric.setOnAction(e -> choosingCharacter.setText("Character :   Electric"));
+
+        fire.setOnAction(e ->handleCharacterSelect("Fire",choosingCharacter));
+        water.setOnAction(e -> handleCharacterSelect("Water",choosingCharacter));
+        electric.setOnAction(e -> handleCharacterSelect("Electric",choosingCharacter));
 
         VBox rightLayout = new VBox(20);
         rightLayout.setPadding(new Insets(20, 40, 20, 0));
         rightLayout.getChildren().addAll(storyBox, infoBox, characterBox, choosingCharacter);
 
         return rightLayout;
+    }
+
+    private void handleCharacterSelect(String element, Label choosingLabel) {
+        if (selectedElement.equals(element)) {
+            selectedElement = "";
+            choosingLabel.setText("Character :   None");
+            start.setDisable(true); // ปิดปุ่ม Start
+        } else {
+            // กรณีที่ 2: คลิกเลือกตัวใหม่ หรือเลือกครั้งแรก
+            selectedElement = element;
+            choosingLabel.setText("Character :   " + element);
+            start.setDisable(false); // เปิดปุ่ม Start
+        }
     }
 
     private Button createMainButton(String name) {

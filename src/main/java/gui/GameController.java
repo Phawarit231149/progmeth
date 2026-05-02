@@ -4,9 +4,14 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import model.CharacterData;
 import model.StageData;
@@ -30,11 +35,13 @@ public class GameController extends StackPane {
     private Label bombLabel;
     private Button[][] cells;
     private Timeline timer;
+    private status gameStatus;
 
     public GameController(StageData config) {
         this.config = config;
         setupUI();
         startTimer();
+
     }
 
     private void setupUI() {
@@ -67,12 +74,12 @@ public class GameController extends StackPane {
                 "-fx-background-color: white; -fx-border-color: #90a4ae; " +
                 "-fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 6 24;");
 
-        Button exitBtn = new Button("✕");
-        exitBtn.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; " +
+        Button pauseBtn = new Button("| |");
+        pauseBtn.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; " +
                 "-fx-background-color: #e0e0e0; -fx-background-radius: 8;");
-        exitBtn.setOnAction(e -> {
+        pauseBtn.setOnAction(e -> {
             timer.stop();
-            this.getScene().setRoot(new HomeController());
+            showPauseMenu();
         });
 
         Region spacer1 = new Region();
@@ -80,10 +87,65 @@ public class GameController extends StackPane {
         HBox.setHgrow(spacer1, Priority.ALWAYS);
         HBox.setHgrow(spacer2, Priority.ALWAYS);
 
-        HBox bar = new HBox(10, killLabel, spacer1, timerLabel, spacer2, exitBtn);
+        HBox bar = new HBox(10, killLabel, spacer1, timerLabel, spacer2, pauseBtn);
         bar.setAlignment(Pos.CENTER);
         bar.setPadding(new Insets(10, 15, 10, 15));
         return bar;
+    }
+
+    private void skillsInformation(){
+        Stage popupStage = new Stage();
+        popupStage.initModality(Modality.APPLICATION_MODAL);
+        popupStage.setTitle("Skills info");
+
+        Label skillsInfo = new Label("Skills:");
+
+        VBox info = new VBox(20);
+        info.getChildren().add(skillsInfo);
+        info.setAlignment(Pos.CENTER);
+
+        Scene infoScene = new Scene(info, 300, 250);
+        popupStage.setScene(infoScene);
+        popupStage.showAndWait();
+
+        timer.play();
+    }
+
+    private void showPauseMenu() {
+        Stage popupStage = new Stage();
+        // ทำให้กดหน้าจอหลักไม่ได้จนกว่าจะปิดอันนี้
+        popupStage.initModality(Modality.APPLICATION_MODAL);
+        popupStage.setTitle("Paused");
+
+        Label pauseLabel = new Label("GAME PAUSED");
+        pauseLabel.setFont(Font.font(24));
+
+        Button resumeBtn = new Button("Resume");
+        resumeBtn.setPrefWidth(100);
+        resumeBtn.setOnAction(e -> {
+            popupStage.close();
+            timer.play();
+        });
+
+        Button quitBtn = new Button("Quit to home");
+        quitBtn.setPrefWidth(100);
+        quitBtn.setOnAction(e -> {
+            popupStage.close();
+            // โค้ดกลับไปหน้า Menu ของคุณ
+            this.getScene().setRoot(new HomeController());
+        });
+
+        VBox pauseLayout = new VBox(20);
+        pauseLayout.getChildren().addAll(pauseLabel, resumeBtn, quitBtn);
+        pauseLayout.setAlignment(Pos.CENTER);
+        pauseLayout.setPadding(new Insets(30));
+        pauseLayout.setStyle("-fx-background-color: white; -fx-border-color: black;");
+
+        Scene pauseScene = new Scene(pauseLayout, 300, 250);
+        popupStage.setScene(pauseScene);
+
+        // แสดงผลตรงกลางหน้าจอหลัก
+        popupStage.showAndWait();
     }
 
     // ── GRID ─────────────────────────────────────────────
@@ -111,69 +173,87 @@ public class GameController extends StackPane {
     }
 
     private void onCellClick(Button cell, int row, int col) {
-        if (cell.getUserData() != null && cell.getUserData().equals("bomb")) {
-            if (cell.getUserData() != null && cell.getUserData().equals("bomb")) {
-                // เอาบอมบ์ออก
-                cell.setUserData(null);
-                cell.setStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
-                bombsLeft++;
-            } else {
-                if (bombsLeft <= 0) return; // ✅ วางไม่ได้ถ้าหมดแล้ว
-                // วางบอมบ์
-                cell.setUserData("bomb");
-                cell.setStyle("-fx-background-color: #ef5350; -fx-border-color: #c62828;");
-                bombsLeft--;
-            }
-            updateBombLabel();
+        // ถ้าช่องนั้นว่าง และเรายังมีระเบิดเหลือ
+        if (cell.getUserData() == null) {
+            plantBomb(cell);
+        }
+        // ถ้าช่องนั้นมีระเบิดอยู่แล้ว ให้เก็บระเบิดคืน (Unplant)
+        else if (cell.getUserData().equals("bomb")) {
+            removeBomb(cell);
         }
     }
 
     // ── RIGHT PANEL ───────────────────────────────────────
-    private VBox buildRightPanel() {
-        VBox panel = new VBox(10);
-        panel.setAlignment(Pos.CENTER);
-        panel.setPadding(new Insets(10, 15, 10, 5));
+    private HBox buildRightPanel() {
+        HBox mainRightContainer = new HBox(40); // เว้นระยะห่างระหว่างคอลัมน์
+        mainRightContainer.setAlignment(Pos.BOTTOM_RIGHT);
+        mainRightContainer.setPadding(new Insets(10, 15, 20, 0));
 
-        // skill slots x5
+        // คอลัมน์ซ้าย: สำหรับปุ่มระเบิด (Bomb Control)
+        VBox leftCol = new VBox(15);
+        leftCol.setAlignment(Pos.BOTTOM_CENTER);
+        leftCol.getChildren().add(createBombControls()); // นำปุ่มระเบิดมาใส่ที่นี่
+
+        // คอลัมน์ขวา: สำหรับ Skill S1-S5 และปุ่ม Info
+        VBox rightCol = new VBox(10);
+        rightCol.setAlignment(Pos.TOP_CENTER);
+
+        // ใส่ Skill S1-S5
         for (int i = 1; i <= 5; i++) {
             Button skill = new Button("S" + i);
             skill.setPrefSize(54, 54);
-            skill.setStyle("-fx-background-radius: 27; -fx-border-radius: 27; " +
-                    "-fx-border-color: #90a4ae; -fx-border-width: 3;");
-            panel.getChildren().add(skill);
+            skill.setStyle("-fx-background-radius: 27; -fx-border-radius: 27; -fx-border-color: #90a4ae; -fx-border-width: 3;");
+            rightCol.getChildren().add(skill);
         }
 
-        // divider
-        Region div = new Region();
-        div.setPrefHeight(2);
-        div.setStyle("-fx-background-color: #546e7a;");
-        panel.getChildren().add(div);
+        // ใส่ Spacer ดันปุ่ม Info ลงไปข้างล่าง
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        // explode button
-        Button explodeBtn = new Button("💥");
-        explodeBtn.setPrefSize(58, 58);
-        explodeBtn.setStyle("-fx-background-radius: 29; -fx-border-radius: 29; " +
-                "-fx-border-color: #e53935; -fx-border-width: 3; -fx-font-size: 20px;");
-        explodeBtn.setOnAction(e -> explodeBombs());
-
-        // bomb count button
-        bombLabel = new Label(bombsLeft + " / " + maxBombs);
-        bombLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Button bombBtn = new Button();
-        bombBtn.setGraphic(bombLabel);
-        bombBtn.setPrefSize(64, 64);
-        bombBtn.setStyle("-fx-background-radius: 32; -fx-border-radius: 32; " +
-                "-fx-border-color: #37474f; -fx-border-width: 4;");
-
-        // info button
         Button infoBtn = new Button("i");
         infoBtn.setPrefSize(36, 36);
-        infoBtn.setStyle("-fx-background-radius: 18; -fx-border-radius: 18; " +
-                "-fx-border-color: #e53935; -fx-border-width: 2; " +
-                "-fx-font-weight: bold; -fx-text-fill: #e53935;");
+        infoBtn.setStyle("-fx-background-radius: 18; -fx-border-radius: 18; -fx-border-color: #e53935; -fx-border-width: 2;");
+        infoBtn.setOnAction(e -> {
+            timer.stop();
+            skillsInformation();
+        });
 
-        panel.getChildren().addAll(explodeBtn, bombBtn, infoBtn);
-        return panel;
+        Label info = new Label("skills\ninfo\n[U]");
+
+        rightCol.getChildren().addAll(spacer, infoBtn, info);
+
+        // รวม 2 คอลัมน์เข้าด้วยกัน
+        mainRightContainer.getChildren().addAll(leftCol, rightCol);
+
+        return mainRightContainer;
+    }
+
+    private VBox createBombControls() {
+        VBox bombContainer = new VBox(10);
+        bombContainer.setAlignment(Pos.BOTTOM_CENTER);
+
+        // ปุ่มกดระเบิด (Bomb Button)
+        Button explodeBtn = new Button("Bomb");
+        explodeBtn.setPrefSize(80, 80);
+        explodeBtn.setStyle("-fx-background-radius: 40;");
+
+        explodeBtn.setOnAction(e -> explodeBombs());
+
+        // ตัวเลขจำนวนระเบิด (5/5)
+        Label plantBombLabel = new Label(bombsLeft + " / " + maxBombs);
+        plantBombLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Button plantBombBtn = new Button("Planter");
+        plantBombBtn.setPrefSize(80,80);
+        plantBombBtn.setStyle("-fx-background-radius: 40;");
+
+        plantBombBtn.setOnAction(e -> {
+
+        });
+
+
+        bombContainer.getChildren().addAll(explodeBtn, plantBombBtn, plantBombLabel);
+        return bombContainer;
     }
 
     // ── BOTTOM HEARTS ─────────────────────────────────────
@@ -197,10 +277,18 @@ public class GameController extends StackPane {
     // ── TIMER ─────────────────────────────────────────────
     private void startTimer() {
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-            if (timeLeft <= 0) { timer.stop(); return; }
+            if (timeLeft <= 0) {
+                timer.stop();
+                setGameStatus(status.LOSE);
+                gameOver();
+            }
             timeLeft--;
             int m = timeLeft / 60, s = timeLeft % 60;
             timerLabel.setText(m + ":" + (s < 10 ? "0" : "") + s);
+            if(timeLeft > 0 && kills > goal){
+                setGameStatus(status.WIN);
+                gameOver();
+            }
             if (timeLeft <= 30)
                 timerLabel.setStyle(timerLabel.getStyle() + "-fx-text-fill: #e53935;");
         }));
@@ -225,13 +313,64 @@ public class GameController extends StackPane {
         killLabel.setText(kills + " / " + goal);
     }
 
+    private void plantBomb(Button cell) {
+        if (bombsLeft > 0) {
+            // 1. ตั้งค่าสถานะว่าเป็นระเบิด
+            cell.setUserData("bomb");
+
+            // 2. เปลี่ยนสีปุ่มเป็นสีแดงตามที่คุณออกแบบไว้
+            cell.setStyle("-fx-background-color: #ef5350; -fx-border-color: #c62828;");
+
+            // 3. ลดจำนวนระเบิดในคลัง
+            bombsLeft--;
+
+            // 4. อัปเดตตัวเลขบนหน้าจอ (5/5 -> 4/5)
+            updateBombLabel();
+
+            System.out.println("Bomb planted! Remaining: " + bombsLeft);
+        } else {
+            System.out.println("No bombs left!");
+            // อาจจะเพิ่ม Effect สั่นหรือเสียงเตือนว่าระเบิดหมดที่นี่
+        }
+    }
+
+    private void removeBomb(Button cell) {
+        // 1. ล้างสถานะระเบิดออก
+        cell.setUserData(null);
+
+        // 2. เปลี่ยนสีกลับเป็นสีพื้นหญ้าเดิม
+        cell.setStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
+
+        // 3. เพิ่มจำนวนระเบิดคืนเข้าคลัง (แต่ไม่เกินค่า Max)
+        if (bombsLeft < maxBombs) {
+            bombsLeft++;
+        }
+
+        // 4. อัปเดตตัวเลขบนหน้าจอ
+        updateBombLabel();
+    }
+
     private void updateBombLabel() {
         bombLabel.setText(bombsLeft + " / " + maxBombs);
     }
+
     public void takeDamage() {
         if (hearts > 0) {
             hearts--;
             updateHearts();
         }
+        if (hearts <= 0){
+            setGameStatus(status.LOSE);
+            gameOver();
+        }
+    }
+
+    private void gameOver(){
+        GameOverController gameOverController = new GameOverController(gameStatus,config);
+        this.getScene().setRoot(gameOverController);
+    }
+
+    public void setGameStatus(status gameStatus) {
+        this.gameStatus = gameStatus;
     }
 }
