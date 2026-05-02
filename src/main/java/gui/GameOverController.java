@@ -18,15 +18,21 @@ import javafx.stage.Stage;
 import java.util.List;
 
 public class GameOverController extends BorderPane {
+
     public GameOverController() {
+
         Label title = new Label("Stage Clear!");
         title.setFont(Font.font(50));
-        title.setPrefSize(500,500);
+        title.setPrefSize(500,200);
         title.setAlignment(Pos.CENTER);
 
         Button nextStage = new Button("Next Stage");
         Button retry = new Button("Retry");
         Button quit = new Button("Quit");
+
+        nextStage.setPrefSize(200,50);
+        retry.setPrefSize(200,50);
+        quit.setPrefSize(200,50);
 
         nextStage.setOnAction(e -> {});
 
@@ -37,11 +43,17 @@ public class GameOverController extends BorderPane {
             this.getScene().setRoot(stageSelectController);
         });
 
-        VBox vbox = new VBox(30);
+        //if win but not stage 5
+        VBox vbox = new VBox(20);
         vbox.setAlignment(Pos.CENTER);
         vbox.setPadding(new Insets(50));
         vbox.getChildren().addAll(title, nextStage, retry, quit);
 
         this.setCenter(vbox);
+
+        //if lose
+
+        // clear stage 5
+
     }
 }
