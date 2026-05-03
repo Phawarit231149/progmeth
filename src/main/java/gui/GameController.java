@@ -340,7 +340,7 @@ public class GameController extends StackPane {
         bombContainer.setAlignment(Pos.BOTTOM_CENTER);
 
         // ปุ่มกดระเบิด (Bomb Button)
-        this.explodeBtn = new Button("Bomb");
+        this.explodeBtn = new Button("explode");
         explodeBtn.setPrefSize(80, 80);
         explodeBtn.setStyle(normalStyle);
 
