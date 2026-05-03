@@ -3,24 +3,15 @@ package gui;
 import javafx.scene.layout.BorderPane;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.image.Image;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
-import javafx.stage.Stage;
 import model.StageData;
-
-import java.util.List;
 
 public class GameOverController extends BorderPane {
 
-    public GameOverController(status gameResult, StageData config) {
+    public GameOverController(Status gameResult, StageData config) {
 
         Label title = new Label("");
         title.setFont(Font.font(50));
@@ -54,20 +45,29 @@ public class GameOverController extends BorderPane {
         vbox.setAlignment(Pos.CENTER);
         vbox.setPadding(new Insets(50));
 
-        if(gameResult.equals(status.WIN)){
+        if(gameResult.equals(Status.WIN)){
             title.setText("Stage Clear!");
             vbox.getChildren().addAll(title, nextStage, retry, back);
+            this.setCenter(vbox);
         }
-        if(gameResult.equals(status.LOSE)){
-            title.setText("You Lose!");
+        if(gameResult.equals(Status.CLEAR)){
+            title.setText("Mission Fail!");
             vbox.getChildren().addAll(title,retry,back);
+            this.setCenter(vbox);
         }
-        if(gameResult.equals(status.CLEAR)){
+        if(gameResult.equals(Status.LOSE)){
             title.setText("Congratulations!");
-            vbox.getChildren().addAll(title,retry,back);
-        }
+            Label subtitle = new Label(".\n.\n.\n.");
+            subtitle.setFont(Font.font(24));
+            vbox.getChildren().addAll(title,subtitle);
 
-        this.setCenter(vbox);
+            HBox hbox = new HBox(20);
+            hbox.setAlignment(Pos.CENTER);
+            hbox.setPadding(new Insets(50));
+            hbox.getChildren().addAll(retry,back);
+            this.setTop(vbox);
+            this.setCenter(hbox);
+        }
 
     }
 }

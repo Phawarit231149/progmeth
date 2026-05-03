@@ -1,6 +1,6 @@
 package gui;
 
-public enum status {
+public enum Status {
     WIN,
     LOSE,
     CLEAR,

@@ -9,11 +9,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
-import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import model.CharacterData;
 import model.StageData;
 
 public class GameController extends StackPane {
@@ -35,12 +33,54 @@ public class GameController extends StackPane {
     private Label bombLabel;
     private Button[][] cells;
     private Timeline timer;
-    private status gameStatus;
+    private Status gameStatus;
+    private Stage infoPopup;
+
+    // Button
+    private Button explodeBtn;
+    private Button plantBombBtn;
+    private Button infoBtn;
+
+    //Button Style
+    private final String normalStyle = "-fx-background-radius: 40;";
+    private final String pressedStyle = "-fx-background-radius: 40; -fx-border-color: red; -fx-border-width: 3px; -fx-border-radius: 40;";
 
     public GameController(StageData config) {
         this.config = config;
         setupUI();
         startTimer();
+
+        this.setFocusTraversable(true);
+
+        this.setOnKeyPressed(event -> {
+            switch (event.getCode()) {
+                case O:
+                    explodeBtn.setStyle(pressedStyle);
+                    explodeBtn.fire();
+                    break;
+                case U:
+                    skillsInformation();
+                    break;
+                case P:
+                    plantBombBtn.setStyle(pressedStyle);
+                    plantBombBtn.fire();
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        this.setOnKeyReleased(event -> {
+            switch (event.getCode()) {
+                case O:
+                    explodeBtn.setStyle(normalStyle);
+                    break;
+                case P:
+                    plantBombBtn.setStyle(normalStyle);
+                    break;
+                default: break;
+            }
+        });
 
     }
 
@@ -93,22 +133,37 @@ public class GameController extends StackPane {
         return bar;
     }
 
-    private void skillsInformation(){
-        Stage popupStage = new Stage();
-        popupStage.initModality(Modality.APPLICATION_MODAL);
-        popupStage.setTitle("Skills info");
+    private void skillsInformation() {
+        if (infoPopup != null && infoPopup.isShowing()) {
+            infoPopup.close();
+            timer.play();
+            return;
+        }
 
-        Label skillsInfo = new Label("Skills:");
+        this.infoPopup = new Stage();
+        infoPopup.initModality(Modality.APPLICATION_MODAL);
+        infoPopup.setTitle("Skills info");
 
         VBox info = new VBox(20);
-        info.getChildren().add(skillsInfo);
         info.setAlignment(Pos.CENTER);
+        Label skillsInfo = new Label("Skills Information\nPress 'U' to close");
+        info.getChildren().add(skillsInfo);
 
         Scene infoScene = new Scene(info, 300, 250);
-        popupStage.setScene(infoScene);
-        popupStage.showAndWait();
 
-        timer.play();
+        infoScene.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.U) {
+                infoPopup.close();
+                timer.play();
+                this.requestFocus();
+            }
+        });
+
+        infoPopup.setScene(infoScene);
+
+        timer.stop();
+
+        infoPopup.show();
     }
 
     private void showPauseMenu() {
@@ -211,7 +266,7 @@ public class GameController extends StackPane {
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        Button infoBtn = new Button("i");
+        this.infoBtn = new Button("i");
         infoBtn.setPrefSize(36, 36);
         infoBtn.setStyle("-fx-background-radius: 18; -fx-border-radius: 18; -fx-border-color: #e53935; -fx-border-width: 2;");
         infoBtn.setOnAction(e -> {
@@ -219,7 +274,8 @@ public class GameController extends StackPane {
             skillsInformation();
         });
 
-        Label info = new Label("skills\ninfo\n[U]");
+        Label info = new Label("[U]");
+        info.setFont(Font.font(15));
 
         rightCol.getChildren().addAll(spacer, infoBtn, info);
 
@@ -234,26 +290,30 @@ public class GameController extends StackPane {
         bombContainer.setAlignment(Pos.BOTTOM_CENTER);
 
         // ปุ่มกดระเบิด (Bomb Button)
-        Button explodeBtn = new Button("Bomb");
+        this.explodeBtn = new Button("Bomb");
         explodeBtn.setPrefSize(80, 80);
-        explodeBtn.setStyle("-fx-background-radius: 40;");
+        explodeBtn.setStyle(normalStyle);
+
+        Label explodeKey = new Label("[O]");
+        explodeKey.setFont(Font.font(15));
 
         explodeBtn.setOnAction(e -> explodeBombs());
+
+        this.plantBombBtn = new Button("Planter");
+        plantBombBtn.setPrefSize(80,80);
+        plantBombBtn.setStyle(normalStyle);
 
         // ตัวเลขจำนวนระเบิด (5/5)
         Label plantBombLabel = new Label(bombsLeft + " / " + maxBombs);
         plantBombLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
-        Button plantBombBtn = new Button("Planter");
-        plantBombBtn.setPrefSize(80,80);
-        plantBombBtn.setStyle("-fx-background-radius: 40;");
+        Label plantKey = new Label("[P]");
+        plantKey.setFont(Font.font(15));
 
-        plantBombBtn.setOnAction(e -> {
-
-        });
+        plantBombBtn.setOnAction(e ->{return;});
 
 
-        bombContainer.getChildren().addAll(explodeBtn, plantBombBtn, plantBombLabel);
+        bombContainer.getChildren().addAll(explodeBtn, explodeKey, plantBombBtn, plantBombLabel, plantKey);
         return bombContainer;
     }
 
@@ -280,16 +340,18 @@ public class GameController extends StackPane {
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             if (timeLeft <= 0) {
                 timer.stop();
-                setGameStatus(status.LOSE);
+                setGameStatus(Status.LOSE);
                 gameOver();
             }
             timeLeft--;
             int m = timeLeft / 60, s = timeLeft % 60;
             timerLabel.setText(m + ":" + (s < 10 ? "0" : "") + s);
             if(timeLeft > 0 && kills > goal){
-                setGameStatus(status.WIN);
+                if (config.getLevel() == 5) {setGameStatus(Status.CLEAR);}
+                else{setGameStatus(Status.WIN);}
                 gameOver();
-            }
+                }
+
             if (timeLeft <= 30)
                 timerLabel.setStyle(timerLabel.getStyle() + "-fx-text-fill: #e53935;");
         }));
@@ -361,7 +423,7 @@ public class GameController extends StackPane {
             updateHearts();
         }
         if (hearts <= 0){
-            setGameStatus(status.LOSE);
+            setGameStatus(Status.LOSE);
             gameOver();
         }
     }
@@ -371,7 +433,7 @@ public class GameController extends StackPane {
         this.getScene().setRoot(gameOverController);
     }
 
-    public void setGameStatus(status gameStatus) {
+    public void setGameStatus(Status gameStatus) {
         this.gameStatus = gameStatus;
     }
 }
