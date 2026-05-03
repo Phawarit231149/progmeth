@@ -3,7 +3,10 @@ package gui;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import model.StageData;
@@ -19,16 +22,6 @@ public class StageSelectController extends BorderPane {
         initializeStageSelection(); // ✅ ต้องมาก่อน
 
         Button back = new Button("X");
-        /*
-        back.setStyle(
-                "-fx-background-radius: 50;" +
-                        "-fx-min-width: 40px;" +
-                        "-fx-min-height: 40px;" +
-                        "-fx-background-color: #d1d1d1;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-font-size: 18px;"
-        );
-         */
 
         back.setOnAction(e -> {
             HomeController homeController = new HomeController();
@@ -82,7 +75,7 @@ public class StageSelectController extends BorderPane {
 
         for (int i = 0; i < 5; i++) {
             final int index = i;
-            Button btn = createMainButton(labels[i]);
+            Button btn = createSelectStageButton(labels[i]);
             btn.setOnAction(e -> selectStage(index));
             stageButtons[i] = btn;
             bar.getChildren().add(btn);
@@ -126,17 +119,17 @@ public class StageSelectController extends BorderPane {
         characterBox.setAlignment(Pos.CENTER_LEFT);
         characterBox.setPadding(new Insets(20, 0, 0, 0));
 
-        Button fire = createMainButton("Fire");
-        Button water = createMainButton("Water");
-        Button electric = createMainButton("Electric");
-        characterBox.getChildren().addAll(fire, water, electric);
+        Button mrKrabs = createSelectCharacterButton("Mr.Krabs","characterProfile/mrKrabPfp.jpg");
+        Button squidWard = createSelectCharacterButton("Squidward","characterProfile/squidwardPfp.jpg");
+        Button spongeBob = createSelectCharacterButton("SpongeBob","characterProfile/spongebobPfp.jpg");
+        characterBox.getChildren().addAll(mrKrabs, squidWard, spongeBob);
 
         Label choosingCharacter = new Label("Character :   None");
         choosingCharacter.setFont(Font.font(20));
 
-        fire.setOnAction(e ->handleCharacterSelect("Fire",choosingCharacter));
-        water.setOnAction(e -> handleCharacterSelect("Water",choosingCharacter));
-        electric.setOnAction(e -> handleCharacterSelect("Electric",choosingCharacter));
+        mrKrabs.setOnAction(e -> handleCharacterSelect("Mr.Krabs",choosingCharacter,mrKrabs));
+        squidWard.setOnAction(e -> handleCharacterSelect("Squidward",choosingCharacter,squidWard));
+        spongeBob.setOnAction(e -> handleCharacterSelect("SpongeBob",choosingCharacter,spongeBob));
 
         VBox rightLayout = new VBox(20);
         rightLayout.setPadding(new Insets(20, 40, 20, 0));
@@ -145,23 +138,71 @@ public class StageSelectController extends BorderPane {
         return rightLayout;
     }
 
-    private void handleCharacterSelect(String element, Label choosingLabel) {
-        if (selectedElement.equals(element)) {
+    private void handleCharacterSelect(String name, Label choosingLabel, Button clickedBtn) {
+        if (selectedElement.equals(name)) {
             selectedElement = "";
             choosingLabel.setText("Character :   None");
-            start.setDisable(true); // ปิดปุ่ม Start
+            start.setDisable(true);
         } else {
-            // กรณีที่ 2: คลิกเลือกตัวใหม่ หรือเลือกครั้งแรก
-            selectedElement = element;
-            choosingLabel.setText("Character :   " + element);
-            start.setDisable(false); // เปิดปุ่ม Start
+            selectedElement = name;
+            choosingLabel.setText("Character :   " + name);
+            start.setDisable(false);
         }
     }
 
-    private Button createMainButton(String name) {
+    private Button createSelectStageButton(String name) {
         Button btn = new Button(name);
         btn.setPrefSize(70, 70);
         btn.setStyle("-fx-background-radius: 40;");
+
+        return btn;
+    }
+
+    private Button createSelectCharacterButton(String name,String imageName) {
+        Button btn = new Button(name);
+        int btnSize = 70;
+        btn.setPrefSize(btnSize, btnSize);
+        btn.setMinSize(btnSize, btnSize);
+        btn.setMaxSize(btnSize, btnSize);
+
+        btn.setStyle("-fx-background-color: transparent; " +
+                "-fx-background-insets: 0; " +
+                "-fx-border-color: transparent; " +
+                "-fx-background-radius: 40;");
+
+        Image image = new Image(getClass().getResourceAsStream("/images/" + imageName));
+        ImageView imageView = new ImageView(image);
+
+        //double size = 54.0;
+        imageView.setFitWidth(btnSize);
+        imageView.setFitHeight(btnSize);
+
+        // ⭐️ สำคัญ: เปลี่ยนเป็น false เพื่อให้ภาพยืด/หดจนเต็มวงกลมพอดี
+        imageView.setPreserveRatio(false);
+
+        // 3. ตัดรูปให้เป็นวงกลม (เช็คจุดศูนย์กลางให้แม่น)
+        double radius = btnSize / 2;
+        javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
+        imageView.setClip(clip);
+
+        // 4. สร้างกรอบ StackPane
+        StackPane container = new StackPane(imageView);
+        container.setPrefSize(btnSize, btnSize);
+        container.setMinSize(btnSize, btnSize); // ป้องกัน Layout อื่นมาบีบให้เล็กลง
+        container.setMaxSize(btnSize, btnSize);
+
+        // ⭐️ ปรับสไตล์ขอบ
+        container.setStyle(
+                "-fx-background-radius: " + radius + "; " +
+                        "-fx-border-radius: " + radius + "; " +
+                        "-fx-border-color: #90a4ae; " +
+                        "-fx-border-width: 3;"
+        );
+
+        btn.setGraphic(container);
+
+        btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+
         return btn;
     }
 

@@ -11,7 +11,7 @@ import model.StageData;
 
 public class GameOverController extends BorderPane {
 
-    public GameOverController(Status gameResult, StageData config, String element) {
+    public GameOverController(Status gameResult, StageData config, String name) {
 
         Label title = new Label("");
         title.setFont(Font.font(50));
@@ -27,12 +27,12 @@ public class GameOverController extends BorderPane {
         back.setPrefSize(200,50);
 
         nextStage.setOnAction(e -> {
-            GameController gameController = new GameController(StageData.ALL_STAGES[config.getLevel() + 1], element);
+            GameController gameController = new GameController(StageData.ALL_STAGES[config.getLevel() + 1], name);
             this.getScene().setRoot(gameController);
         });
 
         retry.setOnAction(e -> {
-            GameController gameController = new GameController(config, element);
+            GameController gameController = new GameController(config, name);
             this.getScene().setRoot(gameController);
         });
 

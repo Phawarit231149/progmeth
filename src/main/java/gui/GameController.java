@@ -1,5 +1,6 @@
 package gui;
 
+import game.Element;
 import game.character.Character;
 import game.character.ElectricCharacter;
 import game.character.FireCharacter;
@@ -7,6 +8,7 @@ import game.character.WaterCharacter;
 import game.map.Rock;
 import game.map.Seaweed;
 import game.map.Tile;
+import game.util.SoundManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
@@ -14,22 +16,21 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.media.AudioClip;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import model.StageData;
 
-import java.util.Random;
-
 public class GameController extends StackPane {
 
     private final StageData config;
-    private final String element;
+    private final String name;
+    private Element element;
 
     // Game model
     private Character player;
@@ -44,7 +45,7 @@ public class GameController extends StackPane {
     private int kills = 0;
     private final int goal = 30;
     private int bombsLeft = 5;
-    private final int maxBombs = 5;
+    private int maxBombs = 5;
     private int timeLeft = 300; // 5 นาที
 
     // UI refs
@@ -69,17 +70,24 @@ public class GameController extends StackPane {
 
     // ── Images (โหลดจาก resources/) ────────────
     private Image spongebobImg;
-    private Image mrKrabImg;
+    private Image mrKrabsImg;
+    private Image squidWardImg;
     private Image rockImg;
     private Image seaweedImg;
     private Image bombImg;
     private double cellSize;       // เก็บไว้ใช้กับ ImageView
 
-    public GameController(StageData config, String element) {
+    private AudioClip explodeSfx;
+
+    public GameController(StageData config, String name) {
         this.config = config;
-        this.element = element;
+        this.name = name;
+        if(name.equals("Mr.Krabs")){this.element = Element.FIRE;}
+        if(name.equals("Squidward")){this.element = Element.WATER;}
+        if(name.equals("SpongeBob")){this.element = Element.ELECTRIC;}
 
         loadImages();
+        loadAudio();
         createPlayer();
         setupMap();
         setupUI();
@@ -124,14 +132,19 @@ public class GameController extends StackPane {
 
     // ── Load images safely (null ถ้าไม่เจอ) ─────────────
     private void loadImages() {
-        spongebobImg = tryLoad("/sponngebob.png");   // ใช้ชื่อไฟล์ตามที่ใส่ใน resources
-        mrKrabImg    = tryLoad("/mrCrab.png");
-        rockImg      = tryLoad("/rock.png");
-        seaweedImg   = tryLoad("/seaweed.png");
-        bombImg      = tryLoad("/bomb.png");
+        spongebobImg = tryLoadImage("/images/gamePlay/spongebob.png");   // ใช้ชื่อไฟล์ตามที่ใส่ใน resources
+        mrKrabsImg    = tryLoadImage("/images/gamePlay/mrKrab.png");
+        squidWardImg = tryLoadImage("/images/gamePlay/squidward.png");
+        rockImg      = tryLoadImage("/images/gamePlay/rock.png");
+        seaweedImg   = tryLoadImage("/images/gamePlay/seaweed.png");
+        bombImg      = tryLoadImage("/images/gamePlay/bomb.png");
     }
 
-    private Image tryLoad(String resourcePath) {
+    private void loadAudio(){
+        explodeSfx = tryLoadAudio("/sounds/explosion.mp3");
+    }
+
+    private Image tryLoadImage(String resourcePath) {
         try {
             var url = getClass().getResource(resourcePath);
             if (url == null) {
@@ -142,6 +155,22 @@ public class GameController extends StackPane {
             return new Image(url.toExternalForm());
         } catch (Exception e) {
             System.out.println("[Image] ERROR: " + resourcePath + " → " + e.getMessage());
+            return null;
+        }
+    }
+
+    private AudioClip tryLoadAudio(String resourcePath) {
+        try {
+            var url = getClass().getResource(resourcePath);
+            if (url == null) {
+                System.out.println("[Audio] NOT FOUND: " + resourcePath);
+                return null;
+            }
+            System.out.println("[Audio] Loaded: " + resourcePath);
+            // ใช้ toExternalForm() เพื่อเปลี่ยน URL เป็น String path ที่ AudioClip เข้าใจ
+            return new AudioClip(url.toExternalForm());
+        } catch (Exception e) {
+            System.out.println("[Audio] ERROR: " + resourcePath + " → " + e.getMessage());
             return null;
         }
     }
@@ -160,10 +189,17 @@ public class GameController extends StackPane {
     private void createPlayer() {
         // health=5, damage=1, damageBomb=1, bombRange=1, maxBombs=5
         switch (element) {
-            case "Fire":     player = new FireCharacter(5, 1, 1, 1, 5); break;
-            case "Water":    player = new WaterCharacter(5, 1, 1, 1, 5); break;
-            case "Electric":
-            default:         player = new ElectricCharacter(5, 1, 1, 1, 5); break;
+            case Element.FIRE:
+                player = new FireCharacter(5, 1, 1, 1, 5);
+                break;
+            case Element.WATER:
+                player = new WaterCharacter(5, 1, 1, 1, 5);
+                break;
+            case Element.ELECTRIC:
+                player = new ElectricCharacter(5, 1, 1, 1, 5);
+                break;
+            default:
+                break;
         }
         playerRow = 0;
         playerCol = 0;
@@ -239,9 +275,13 @@ public class GameController extends StackPane {
         // พื้นหลังพื้นปกติทุกครั้ง
         String baseStyle = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
 
+        Image playerImg = null;
+        if(name.equals("Mr.Krabs")){playerImg  = mrKrabsImg  ;}
+        if(name.equals("Squidward")){playerImg = squidWardImg;}
+        if(name.equals("SpongeBob")){playerImg = spongebobImg;}
+
         if (r == playerRow && c == playerCol) {
             // Player — ใช้ SpongeBob ถ้ามีรูป (electric), MrKrab ถ้ามี (เผื่อ character อื่น)
-            Image playerImg = spongebobImg;
             if (playerImg != null) {
                 cell.setStyle(baseStyle);
                 cell.setGraphic(makeCellImage(playerImg));
@@ -362,16 +402,16 @@ public class GameController extends StackPane {
         VBox info = new VBox(20);
         info.setAlignment(Pos.CENTER);
         Label skillsInfo = new Label(
-                "• Bomb Capacity Up: Increase max \n bombs you can drop.\n" +
-                "• Blast Radius: Expand the explosion \n range.\n" +
-                "• High Explosive: Increase bomb \n damage dealt to enemies.\n" +
-                "• Bubble Shield: Protects you from one instance of damage.\n" +
-                "• Quick Heal: Restore your HP \n immediately.");
+                "• Bomb Capacity Up: Increase max\nbombs you can drop.\n\n" +
+                "• Blast Radius: Expand the explosion\nrange.\n\n" +
+                "• High Explosive: Increase bomb\ndamage dealt to enemies.\n\n" +
+                "• Bubble Shield: Protects you from one\ninstance of damage.\n\n" +
+                "• Quick Heal: Restore your HP\nfor 1 immediately.");
         skillsInfo.setFont(Font.font(18));
 
         info.getChildren().add(skillsInfo);
 
-        Scene infoScene = new Scene(info, 300, 250);
+        Scene infoScene = new Scene(info, 400, 380);
 
         infoScene.setOnKeyPressed(event -> {
             if (event.getCode() == javafx.scene.input.KeyCode.U) {
@@ -494,11 +534,11 @@ public class GameController extends StackPane {
         rightCol.setAlignment(Pos.TOP_CENTER);
 
         // ใส่ Skills buff
-        StackPane s1 = createSkillImage("s1.jpeg");
-        StackPane s2 = createSkillImage("s2.jpeg");
-        StackPane s3 = createSkillImage("s3.jpeg");
-        StackPane s4 = createSkillImage("s4.jpeg");
-        StackPane s5 = createSkillImage("s5.jpeg");
+        StackPane s1 = createSkillImage("buffIcon/increaseMaximumBomb.png");
+        StackPane s2 = createSkillImage("buffIcon/increaseBombRange.png");
+        StackPane s3 = createSkillImage("buffIcon/increaseBombDamage.png");
+        StackPane s4 = createSkillImage("buffIcon/bubbleShield.png");
+        StackPane s5 = createSkillImage("buffIcon/heal.png");
 
         rightCol.getChildren().addAll(s1,s2,s3,s4,s5);
 
@@ -584,7 +624,6 @@ public class GameController extends StackPane {
         return container;
     }
 
-    // ── BOTTOM HEARTS ─────────────────────────────────────
     // ── BOTTOM HEARTS ───────────────────────────────────
     private HBox buildBottomBar() {
         heartsBox = new HBox(8);
@@ -600,6 +639,10 @@ public class GameController extends StackPane {
             Label h = new Label(i < hearts ? "♥" : "♡");
             h.setStyle("-fx-font-size: 26px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
             heartsBox.getChildren().add(h);
+
+            if (hearts == 0){
+                setGameStatus(Status.LOSE);
+                gameOver();}
         }
     }
 
@@ -645,8 +688,13 @@ public class GameController extends StackPane {
     private void explodeBombs() {
         int range = player.getBombRange();
         boolean[][] toExplode = new boolean[config.getRows()][config.getCols()];
+        boolean takeDamage = false;
 
-        // ทุกระเบิดบนแผนที่ → ขยายระเบิด 4 ทิศ
+        if((bombsLeft < maxBombs) && (explodeSfx != null)){
+            SoundManager.playSFX(explodeSfx);
+        }
+
+        // 1. คำนวณขอบเขตการระเบิด (โค้ดเดิมของคุณ)
         for (int r = 0; r < config.getRows(); r++) {
             for (int c = 0; c < config.getCols(); c++) {
                 if (!hasBomb[r][c]) continue;
@@ -656,29 +704,64 @@ public class GameController extends StackPane {
                     for (int step = 1; step <= range; step++) {
                         int rr = r + d[0]*step;
                         int cc = c + d[1]*step;
-                        if (rr < 0 || rr >= config.getRows()) break;
-                        if (cc < 0 || cc >= config.getCols()) break;
-                        if (map[rr][cc] instanceof Rock) break;       // เจอ Rock → หยุด
+                        if (rr < 0 || rr >= config.getRows() || cc < 0 || cc >= config.getCols()) break;
+                        if (map[rr][cc] instanceof Rock) break;
                         toExplode[rr][cc] = true;
                         if (seaweeds[rr][cc] != null && !seaweeds[rr][cc].isDestroyed()) {
-                            seaweeds[rr][cc].destroy();               // ทำลาย Seaweed → หยุด
+                            seaweeds[rr][cc].destroy();
                             break;
+                        }
+                        if((rr == playerRow && cc == playerCol) || (r == playerRow && c == playerCol)){
+                            if(!takeDamage){
+                                hearts --;
+                                takeDamage = true;
+                                updateHearts();
+                            }
                         }
                     }
                 }
             }
         }
 
-        // ระเบิดทำลายทุกอย่างใน toExplode (ตอนนี้แค่เคลียร์ระเบิดออก)
+        // 2. เคลียร์สถานะระเบิด
         for (int r = 0; r < config.getRows(); r++) {
             for (int c = 0; c < config.getCols(); c++) {
                 if (hasBomb[r][c]) hasBomb[r][c] = false;
             }
         }
 
+        // อัปเดต UI เบื้องต้น
         bombsLeft = maxBombs;
         updateBombLabel();
         renderGrid();
+
+        // แสดง Effect กะพริบสีแดง
+        applyExplosionEffect(toExplode);
+    }
+
+    // --- ฟังก์ชันเสริมสำหรับทำ Effect ---
+    private void applyExplosionEffect(boolean[][] toExplode) {
+        for (int r = 0; r < config.getRows(); r++) {
+            for (int c = 0; c < config.getCols(); c++) {
+                if (toExplode[r][c]) {
+                    // ✅ เปลี่ยนเป็น cells[r][c] ให้ตรงกับที่ประกาศไว้ด้านบน
+                    Button cell = cells[r][c];
+
+                    // เก็บสไตล์ปัจจุบันไว้
+                    String originalStyle = cell.getStyle();
+
+                    // ✅ แสดงสีแดงกะพริบ (ใช้สีแดงสดเพื่อให้เห็นชัดบนพื้นเขียว)
+                    cell.setStyle("-fx-background-color: rgba(255, 0, 0, 0.8); -fx-border-color: #ff1744;");
+
+                    // หน่วงเวลา 300ms แล้วเปลี่ยนกลับ
+                    Timeline flash = new Timeline(new KeyFrame(
+                            Duration.millis(300),
+                            ae -> cell.setStyle(originalStyle)
+                    ));
+                    flash.play();
+                }
+            }
+        }
     }
 
     private void updateBombLabel() {
@@ -697,11 +780,19 @@ public class GameController extends StackPane {
     }
 
     private void gameOver() {
-        GameOverController gameOverController = new GameOverController(gameStatus, config, element);
+        GameOverController gameOverController = new GameOverController(gameStatus, config, name);
         this.getScene().setRoot(gameOverController);
     }
 
     public void setGameStatus(Status gameStatus) {
         this.gameStatus = gameStatus;
+    }
+
+    public int getHearts() {
+        return hearts;
+    }
+
+    public void setHearts(int hearts) {
+        this.hearts = hearts;
     }
 }
