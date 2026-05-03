@@ -2,11 +2,16 @@ package game.buff;
 
 import game.character.Character;
 
-public class HealBuff extends Buff{
-    public HealBuff(int posX,int posY){
-        super(posX,posY);
+public class HealBuff extends Buff {
+
+    private static final int HEAL_AMOUNT = 1;   // ฟื้น 1 หัวใจ
+
+    public HealBuff() {
+        super("Heal", "Restore +1 HP (capped at max).");
     }
 
     @Override
-    public void apply(Character character) {character.setHealth(character.getHealth() + 1);}
+    public void apply(Character target) {
+        target.heal(HEAL_AMOUNT);
+    }
 }

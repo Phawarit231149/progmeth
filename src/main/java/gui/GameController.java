@@ -1,6 +1,12 @@
 package gui;
 
-import game.entity.EasyEnemy;
+import game.character.Character;
+import game.character.ElectricCharacter;
+import game.character.FireCharacter;
+import game.character.WaterCharacter;
+import game.map.Rock;
+import game.map.Seaweed;
+import game.map.Tile;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
@@ -23,6 +29,15 @@ import java.util.Random;
 public class GameController extends StackPane {
 
     private final StageData config;
+    private final String element;
+
+    // Game model
+    private Character player;
+    private int playerRow;
+    private int playerCol;
+    private Tile[][] map;          // พื้น (Tile, Rock)
+    private Seaweed[][] seaweeds;  // seaweed objects (วางทับ tile)
+    private boolean[][] hasBomb;   // ช่องไหนมีระเบิด
 
     // game state
     private int hearts = 5;
@@ -52,15 +67,33 @@ public class GameController extends StackPane {
     private final String normalStyle = "-fx-background-radius: 40;";
     private final String pressedStyle = "-fx-background-radius: 40; -fx-border-color: red; -fx-border-width: 3px; -fx-border-radius: 40;";
 
-    public GameController(StageData config) {
+    // ── Images (โหลดจาก resources/) ────────────
+    private Image spongebobImg;
+    private Image mrKrabImg;
+    private Image rockImg;
+    private Image seaweedImg;
+    private Image bombImg;
+    private double cellSize;       // เก็บไว้ใช้กับ ImageView
+
+    public GameController(StageData config, String element) {
         this.config = config;
+        this.element = element;
+
+        loadImages();
+        createPlayer();
+        setupMap();
         setupUI();
+        renderGrid();
         startTimer();
 
         this.setFocusTraversable(true);
 
         this.setOnKeyPressed(event -> {
             switch (event.getCode()) {
+                case W: tryMove(-1, 0); break;
+                case S: tryMove( 1, 0); break;
+                case A: tryMove( 0,-1); break;
+                case D: tryMove( 0, 1); break;
                 case O:
                     explodeBtn.setStyle(pressedStyle);
                     explodeBtn.fire();
@@ -82,18 +115,177 @@ public class GameController extends StackPane {
 
         this.setOnKeyReleased(event -> {
             switch (event.getCode()) {
-                case O:
-                    explodeBtn.setStyle(normalStyle);
-                    break;
-                case P:
-                    plantBombBtn.setStyle(normalStyle);
-                    break;
+                case O: explodeBtn.setStyle(normalStyle); break;
+                case P: plantBombBtn.setStyle(normalStyle); break;
                 default: break;
             }
         });
-
     }
 
+    // ── Load images safely (null ถ้าไม่เจอ) ─────────────
+    private void loadImages() {
+        spongebobImg = tryLoad("/sponngebob.png");   // ใช้ชื่อไฟล์ตามที่ใส่ใน resources
+        mrKrabImg    = tryLoad("/mrCrab.png");
+        rockImg      = tryLoad("/rock.png");
+        seaweedImg   = tryLoad("/seaweed.png");
+        bombImg      = tryLoad("/bomb.png");
+    }
+
+    private Image tryLoad(String resourcePath) {
+        try {
+            var url = getClass().getResource(resourcePath);
+            if (url == null) {
+                System.out.println("[Image] NOT FOUND: " + resourcePath);
+                return null;
+            }
+            System.out.println("[Image] Loaded: " + resourcePath);
+            return new Image(url.toExternalForm());
+        } catch (Exception e) {
+            System.out.println("[Image] ERROR: " + resourcePath + " → " + e.getMessage());
+            return null;
+        }
+    }
+
+    // ── สร้าง ImageView ขนาดพอดี cell ─────────────────
+    private ImageView makeCellImage(Image img) {
+        ImageView iv = new ImageView(img);
+        double size = Math.max(cellSize - 4, 8);  // เผื่อขอบนิดหน่อย
+        iv.setFitWidth(size);
+        iv.setFitHeight(size);
+        iv.setPreserveRatio(true);
+        return iv;
+    }
+
+    // ── Create the player character ─────────────────────
+    private void createPlayer() {
+        // health=5, damage=1, damageBomb=1, bombRange=1, maxBombs=5
+        switch (element) {
+            case "Fire":     player = new FireCharacter(5, 1, 1, 1, 5); break;
+            case "Water":    player = new WaterCharacter(5, 1, 1, 1, 5); break;
+            case "Electric":
+            default:         player = new ElectricCharacter(5, 1, 1, 1, 5); break;
+        }
+        playerRow = 0;
+        playerCol = 0;
+        player.setPos(playerCol, playerRow);
+    }
+
+    // ── Setup map with rocks and seaweeds ───────────────
+    private void setupMap() {
+        int rows = config.getRows();
+        int cols = config.getCols();
+
+        map      = new Tile[rows][cols];
+        seaweeds = new Seaweed[rows][cols];
+        hasBomb  = new boolean[rows][cols];
+
+        // initialize every tile as plain Tile
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                map[r][c] = new Tile(r, c);
+            }
+        }
+
+        // place rocks (hardcoded for demo)
+        int[][] rockPositions = { {2,3}, {2,4}, {3,3}, {5,5}, {5,6}, {7,2}, {7,8} };
+        for (int[] p : rockPositions) {
+            int r = p[0], c = p[1];
+            if (r > 0 && r < rows && c > 0 && c < cols) {
+                map[r][c] = new Rock(r, c);
+            }
+        }
+
+        // place seaweeds (hardcoded for demo)
+        int[][] seaweedPositions = { {1,5}, {2,7}, {4,2}, {4,7}, {6,4}, {8,5}, {8,9} };
+        for (int[] p : seaweedPositions) {
+            int r = p[0], c = p[1];
+            if (r > 0 && r < rows && c > 0 && c < cols) {
+                seaweeds[r][c] = new Seaweed(r, c);
+            }
+        }
+    }
+
+    // ── Movement ────────────────────────────────────────
+    private void tryMove(int dr, int dc) {
+        int nr = playerRow + dr;
+        int nc = playerCol + dc;
+
+        if (nr < 0 || nr >= config.getRows()) return;
+        if (nc < 0 || nc >= config.getCols()) return;
+        if (!map[nr][nc].isPassable()) return;          // ติด Rock
+        if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) return; // ติด Seaweed
+        if (hasBomb[nr][nc]) return;                    // ติด Bomb
+
+        playerRow = nr;
+        playerCol = nc;
+        player.setPos(playerCol, playerRow);
+        renderGrid();
+    }
+
+    // ── Render the whole grid ───────────────────────────
+    private void renderGrid() {
+        for (int r = 0; r < config.getRows(); r++) {
+            for (int c = 0; c < config.getCols(); c++) {
+                styleCell(r, c);
+            }
+        }
+    }
+
+    private void styleCell(int r, int c) {
+        Button cell = cells[r][c];
+        cell.setText("");
+        cell.setGraphic(null);
+
+        // พื้นหลังพื้นปกติทุกครั้ง
+        String baseStyle = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
+
+        if (r == playerRow && c == playerCol) {
+            // Player — ใช้ SpongeBob ถ้ามีรูป (electric), MrKrab ถ้ามี (เผื่อ character อื่น)
+            Image playerImg = spongebobImg;
+            if (playerImg != null) {
+                cell.setStyle(baseStyle);
+                cell.setGraphic(makeCellImage(playerImg));
+            } else {
+                cell.setStyle("-fx-background-color: #fff176; -fx-border-color: #f57f17; -fx-font-weight: bold;");
+                cell.setText("S");
+            }
+            return;
+        }
+        if (hasBomb[r][c]) {
+            if (bombImg != null) {
+                cell.setStyle(baseStyle);
+                cell.setGraphic(makeCellImage(bombImg));
+            } else {
+                cell.setStyle("-fx-background-color: #ef5350; -fx-border-color: #c62828; -fx-font-weight: bold;");
+                cell.setText("B");
+            }
+            return;
+        }
+        if (map[r][c] instanceof Rock) {
+            if (rockImg != null) {
+                cell.setStyle(baseStyle);
+                cell.setGraphic(makeCellImage(rockImg));
+            } else {
+                cell.setStyle("-fx-background-color: #9e9e9e; -fx-border-color: #424242; -fx-font-weight: bold;");
+                cell.setText("R");
+            }
+            return;
+        }
+        if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
+            if (seaweedImg != null) {
+                cell.setStyle(baseStyle);
+                cell.setGraphic(makeCellImage(seaweedImg));
+            } else {
+                cell.setStyle("-fx-background-color: #66bb6a; -fx-border-color: #2e7d32; -fx-font-weight: bold;");
+                cell.setText("W");
+            }
+            return;
+        }
+        // plain tile (or destroyed seaweed → ผ่านได้)
+        cell.setStyle(baseStyle);
+    }
+
+    // ── Setup UI (top bar / grid / right panel / bottom) ─
     private void setupUI() {
         BorderPane root = new BorderPane();
 
@@ -104,28 +296,28 @@ public class GameController extends StackPane {
         root.setPrefSize(900, 600);
         this.getChildren().add(root);
 
-        // ✅ เพิ่ม padding เผื่อให้มากขึ้น
-        double rightW = 210;  // เพิ่มจาก 189
-        double topH   = 80;   // เพิ่มจาก 62
-        double botH   = 60;   // เพิ่มจาก 51
+        double rightW = 210;
+        double topH   = 80;
+        double botH   = 60;
 
         double availableW = 900 - rightW - 10;
         double availableH = 600 - topH - botH - 10;
 
-        double cellSize = Math.floor(Math.min(
+        double cs = Math.floor(Math.min(
                 availableW / config.getCols(),
                 availableH / config.getRows()
         ));
-        cellSize = Math.max(cellSize, 8);
+        cs = Math.max(cs, 8);
+        this.cellSize = cs;   // เก็บไว้ให้ ImageView ใช้
 
-        StackPane centerHolder = new StackPane(buildGrid(cellSize));
+        StackPane centerHolder = new StackPane(buildGrid(cs));
         centerHolder.setAlignment(Pos.CENTER);
         root.setCenter(centerHolder);
     }
 
-    // ── TOP BAR ──────────────────────────────────────────
+    // ── TOP BAR ─────────────────────────────────────────
     private HBox buildTopBar() {
-        killLabel = new Label("0 / " + goal);
+        killLabel = new Label("0 / " + config.getGoal());
         killLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; " +
                 "-fx-background-color: #fff8e1; -fx-border-color: #f9a825; " +
                 "-fx-border-radius: 20; -fx-background-radius: 20; -fx-padding: 6 18;");
@@ -267,8 +459,7 @@ public class GameController extends StackPane {
                 cell.setMinSize(cellSize, cellSize);
                 cell.setMaxSize(cellSize, cellSize);
                 cell.setPrefSize(cellSize, cellSize);
-                cell.setStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
-                cell.setOnAction(e -> onCellClick(cell, row, col));
+                cell.setFocusTraversable(false);  // ไม่ให้ปุ่มดูดโฟกัสจาก WASD
                 cells[r][c] = cell;
                 grid.add(cell, c, r);
             }
@@ -298,18 +489,17 @@ public class GameController extends StackPane {
         }
     }
 
-    // ── RIGHT PANEL ───────────────────────────────────────
+    // ── RIGHT PANEL ─────────────────────────────────────
     private HBox buildRightPanel() {
-        HBox mainRightContainer = new HBox(40); // เว้นระยะห่างระหว่างคอลัมน์
+        HBox mainRightContainer = new HBox(40);
         mainRightContainer.setAlignment(Pos.BOTTOM_RIGHT);
         mainRightContainer.setPadding(new Insets(10, 15, 20, 0));
 
         // คอลัมน์ซ้าย: สำหรับปุ่มระเบิด (Bomb Control)
         VBox leftCol = new VBox(15);
         leftCol.setAlignment(Pos.BOTTOM_CENTER);
-        leftCol.getChildren().add(createBombControls()); // นำปุ่มระเบิดมาใส่ที่นี่
+        leftCol.getChildren().add(createBombControls());
 
-        // Skill & Info
         VBox rightCol = new VBox(10);
         rightCol.setAlignment(Pos.TOP_CENTER);
 
@@ -321,27 +511,29 @@ public class GameController extends StackPane {
         StackPane s5 = createSkillImage("s5.jpeg");
 
         rightCol.getChildren().addAll(s1,s2,s3,s4,s5);
+        for (int i = 1; i <= 5; i++) {
+            Button skill = new Button("S" + i);
+            skill.setPrefSize(54, 54);
+            skill.setFocusTraversable(false);
+            skill.setStyle("-fx-background-radius: 27; -fx-border-radius: 27; -fx-border-color: #90a4ae; -fx-border-width: 3;");
+            rightCol.getChildren().add(skill);
+        }
 
-        // ใส่ Spacer ดันปุ่ม Info ลงไปข้างล่าง
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
         this.infoBtn = new Button("i");
         infoBtn.setPrefSize(36, 36);
+        infoBtn.setFocusTraversable(false);
         infoBtn.setStyle("-fx-background-radius: 18; -fx-border-radius: 18; -fx-border-color: #e53935; -fx-border-width: 2;");
-        infoBtn.setOnAction(e -> {
-            timer.stop();
-            skillsInformation();
-        });
+        infoBtn.setOnAction(e -> { timer.stop(); skillsInformation(); });
 
         Label info = new Label("[U]");
         info.setFont(Font.font(15));
 
         rightCol.getChildren().addAll(spacer, infoBtn, info);
 
-        // รวม 2 คอลัมน์เข้าด้วยกัน
         mainRightContainer.getChildren().addAll(leftCol, rightCol);
-
         return mainRightContainer;
     }
 
@@ -349,33 +541,28 @@ public class GameController extends StackPane {
         VBox bombContainer = new VBox(10);
         bombContainer.setAlignment(Pos.BOTTOM_CENTER);
 
-        // ปุ่มกดระเบิด (Bomb Button)
-        this.explodeBtn = new Button("explode");
+        this.explodeBtn = new Button("Bomb");
         explodeBtn.setPrefSize(80, 80);
+        explodeBtn.setFocusTraversable(false);
         explodeBtn.setStyle(normalStyle);
+        explodeBtn.setOnAction(e -> explodeBombs());
 
         Label explodeKey = new Label("[O]");
         explodeKey.setFont(Font.font(15));
 
-        explodeBtn.setOnAction(e -> explodeBombs());
-
-        this.plantBombBtn = new Button("Planter");
-        plantBombBtn.setPrefSize(80,80);
+        this.plantBombBtn = new Button("Plant");
+        plantBombBtn.setPrefSize(80, 80);
+        plantBombBtn.setFocusTraversable(false);
         plantBombBtn.setStyle(normalStyle);
+        plantBombBtn.setOnAction(e -> plantBombAtPlayer());
 
-        // ตัวเลขจำนวนระเบิด (5/5)
-        Label plantBombLabel = new Label(bombsLeft + " / " + maxBombs);
-        plantBombLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        this.bombLabel = new Label(bombsLeft + " / " + maxBombs);
+        bombLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         Label plantKey = new Label("[P]");
         plantKey.setFont(Font.font(15));
 
-        plantBombBtn.setOnAction(e ->{
-            return;
-        });
-
-
-        bombContainer.getChildren().addAll(explodeBtn, explodeKey, plantBombBtn, plantBombLabel, plantKey);
+        bombContainer.getChildren().addAll(explodeBtn, explodeKey, plantBombBtn, bombLabel, plantKey);
         return bombContainer;
     }
 
@@ -415,6 +602,7 @@ public class GameController extends StackPane {
     }
 
     // ── BOTTOM HEARTS ─────────────────────────────────────
+    // ── BOTTOM HEARTS ───────────────────────────────────
     private HBox buildBottomBar() {
         heartsBox = new HBox(8);
         heartsBox.setAlignment(Pos.CENTER);
@@ -426,13 +614,13 @@ public class GameController extends StackPane {
     private void updateHearts() {
         heartsBox.getChildren().clear();
         for (int i = 0; i < 5; i++) {
-            Label h = new Label(i < hearts ? "❤️" : "🖤");
-            h.setStyle("-fx-font-size: 26px;");
+            Label h = new Label(i < hearts ? "♥" : "♡");
+            h.setStyle("-fx-font-size: 26px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
             heartsBox.getChildren().add(h);
         }
     }
 
-    // ── TIMER ─────────────────────────────────────────────
+    // ── TIMER ───────────────────────────────────────────
     private void startTimer() {
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             if (timeLeft <= 0) {
@@ -443,12 +631,11 @@ public class GameController extends StackPane {
             timeLeft--;
             int m = timeLeft / 60, s = timeLeft % 60;
             timerLabel.setText(m + ":" + (s < 10 ? "0" : "") + s);
-            if(timeLeft > 0 && kills > goal){
-                if (config.getLevel() == 5) {setGameStatus(Status.CLEAR);}
-                else{setGameStatus(Status.WIN);}
+            if (timeLeft > 0 && kills > config.getGoal()) {
+                if (config.getLevel() == 5) setGameStatus(Status.CLEAR);
+                else                        setGameStatus(Status.WIN);
                 gameOver();
-                }
-
+            }
             if (timeLeft <= 30)
                 timerLabel.setStyle(timerLabel.getStyle() + "-fx-text-fill: #e53935;");
         }));
@@ -456,58 +643,59 @@ public class GameController extends StackPane {
         timer.play();
     }
 
-    // ── EXPLODE ───────────────────────────────────────────
+    // ── PLANT BOMB AT PLAYER POSITION ───────────────────
+    private void plantBombAtPlayer() {
+        if (bombsLeft <= 0) {
+            System.out.println("No bombs left!");
+            return;
+        }
+        if (hasBomb[playerRow][playerCol]) return;   // ช่องนี้มีระเบิดอยู่แล้ว
+
+        hasBomb[playerRow][playerCol] = true;
+        bombsLeft--;
+        updateBombLabel();
+        renderGrid();
+        System.out.println("Bomb planted at (" + playerRow + "," + playerCol + ")");
+    }
+
+    // ── EXPLODE — bomb 4 directions, range = player.getBombRange() ─
     private void explodeBombs() {
+        int range = player.getBombRange();
+        boolean[][] toExplode = new boolean[config.getRows()][config.getCols()];
+
+        // ทุกระเบิดบนแผนที่ → ขยายระเบิด 4 ทิศ
         for (int r = 0; r < config.getRows(); r++) {
             for (int c = 0; c < config.getCols(); c++) {
-                if (cells[r][c].getUserData() != null &&
-                        cells[r][c].getUserData().equals("bomb")) {
-                    cells[r][c].setUserData(null);
-                    cells[r][c].setStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
-                    kills = Math.min(kills + 1, goal);
+                if (!hasBomb[r][c]) continue;
+                toExplode[r][c] = true;
+                int[][] dirs = { {-1,0}, {1,0}, {0,-1}, {0,1} };
+                for (int[] d : dirs) {
+                    for (int step = 1; step <= range; step++) {
+                        int rr = r + d[0]*step;
+                        int cc = c + d[1]*step;
+                        if (rr < 0 || rr >= config.getRows()) break;
+                        if (cc < 0 || cc >= config.getCols()) break;
+                        if (map[rr][cc] instanceof Rock) break;       // เจอ Rock → หยุด
+                        toExplode[rr][cc] = true;
+                        if (seaweeds[rr][cc] != null && !seaweeds[rr][cc].isDestroyed()) {
+                            seaweeds[rr][cc].destroy();               // ทำลาย Seaweed → หยุด
+                            break;
+                        }
+                    }
                 }
             }
         }
-        bombsLeft = maxBombs; // ✅ reset กลับเป็น 5/5
-        updateBombLabel();
-        killLabel.setText(kills + " / " + goal);
-    }
 
-    private void plantBomb(Button cell) {
-        if (bombsLeft > 0) {
-            // 1. ตั้งค่าสถานะว่าเป็นระเบิด
-            cell.setUserData("bomb");
-
-            // 2. เปลี่ยนสีปุ่มเป็นสีแดงตามที่คุณออกแบบไว้
-            cell.setStyle("-fx-background-color: #ef5350; -fx-border-color: #c62828;");
-
-            // 3. ลดจำนวนระเบิดในคลัง
-            bombsLeft--;
-
-            // 4. อัปเดตตัวเลขบนหน้าจอ (5/5 -> 4/5)
-            updateBombLabel();
-
-            System.out.println("Bomb planted! Remaining: " + bombsLeft);
-        } else {
-            System.out.println("No bombs left!");
-            // อาจจะเพิ่ม Effect สั่นหรือเสียงเตือนว่าระเบิดหมดที่นี่
-        }
-    }
-
-    private void removeBomb(Button cell) {
-        // 1. ล้างสถานะระเบิดออก
-        cell.setUserData(null);
-
-        // 2. เปลี่ยนสีกลับเป็นสีพื้นหญ้าเดิม
-        cell.setStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
-
-        // 3. เพิ่มจำนวนระเบิดคืนเข้าคลัง (แต่ไม่เกินค่า Max)
-        if (bombsLeft < maxBombs) {
-            bombsLeft++;
+        // ระเบิดทำลายทุกอย่างใน toExplode (ตอนนี้แค่เคลียร์ระเบิดออก)
+        for (int r = 0; r < config.getRows(); r++) {
+            for (int c = 0; c < config.getCols(); c++) {
+                if (hasBomb[r][c]) hasBomb[r][c] = false;
+            }
         }
 
-        // 4. อัปเดตตัวเลขบนหน้าจอ
+        bombsLeft = maxBombs;
         updateBombLabel();
+        renderGrid();
     }
 
     private void updateBombLabel() {
@@ -519,26 +707,15 @@ public class GameController extends StackPane {
             hearts--;
             updateHearts();
         }
-        if (hearts <= 0){
+        if (hearts <= 0) {
             setGameStatus(Status.LOSE);
             gameOver();
         }
     }
 
-    private void gameOver(){
-        GameOverController gameOverController = new GameOverController(gameStatus,config);
+    private void gameOver() {
+        GameOverController gameOverController = new GameOverController(gameStatus, config, element);
         this.getScene().setRoot(gameOverController);
-    }
-
-    private void spawnEnemy() {
-        Random random = new Random();
-
-        int randomX = random.nextInt(config.getCols());
-        int randomY = random.nextInt(config.getRows());
-        boolean isShielded = random.nextBoolean();
-
-        EasyEnemy slime = new EasyEnemy(1,randomX, randomY,isShielded);
-
     }
 
     public void setGameStatus(Status gameStatus) {

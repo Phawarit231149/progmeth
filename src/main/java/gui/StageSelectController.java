@@ -51,7 +51,7 @@ public class StageSelectController extends BorderPane {
 
         start.setOnAction(e -> {
             StageData config = StageData.ALL_STAGES[selectedStage];
-            GameController gameController = new GameController(config);
+            GameController gameController = new GameController(config, selectedElement);
             this.getScene().setRoot(gameController);
         });
 

@@ -1,7 +1,5 @@
 package game.character;
 
-import game.Element;
-
 public abstract class Character {
 
     // Stats
@@ -43,7 +41,7 @@ public abstract class Character {
     }
 
     public int calculateDamage(Element enemyElement) {
-        if (enemyElement == null || enemyElement.equals(element)) {
+        if (enemyElement == null) {
             return damage; // ดาเมจปกติ
         }
         if (isWeakAgainst(enemyElement)) {
@@ -55,11 +53,11 @@ public abstract class Character {
         return damage; // เท่ากัน → ดาเมจปกติ
     }
 
+    // ── ตรวจสอบ element ───────────────────────
     private boolean isStrongAgainst(Element other) {
-        return ( element== Element.FIRE    && other == Element.WATER)    ||
+        return (element == Element.FIRE    && other == Element.WATER)    ||
                 (element == Element.WATER   && other == Element.ELECTRIC) ||
-                (element == Element.ELECTRIC && other == Element.FIRE) ||
-                (other == Element.NONE);
+                (element == Element.ELECTRIC && other == Element.FIRE);
     }
 
     private boolean isWeakAgainst(Element other) {
@@ -91,48 +89,26 @@ public abstract class Character {
     public void setShield(boolean s) { haveShield = s; }
     public boolean isAlive()         { return health > 0; }
 
-    public void setHealth(int health) {
-        this.health = health;
+    // ── Buff helpers ──────────────────────────
+    // เพิ่ม health (cap ที่ maxHealth ไม่ให้เกิน)
+    public void heal(int amount) {
+        health += amount;
+        if (health > maxHealth) health = maxHealth;
     }
 
-    public void setMaxHealth(int maxHealth) {
-        this.maxHealth = maxHealth;
+    // เพิ่ม bomb range
+    public void increaseBombRange(int amount) {
+        bombRange += amount;
     }
 
-    public void setDamage(int damage) {
-        this.damage = damage;
+    // เพิ่ม damage ของระเบิด
+    public void increaseBombDamage(int amount) {
+        damageBomb += amount;
     }
 
-    public void setDamageBomb(int damageBomb) {
-        this.damageBomb = damageBomb;
-    }
-
-    public void setBombRange(int bombRange) {
-        this.bombRange = bombRange;
-    }
-
-    public void setMaxBombs(int maxBombs) {
-        this.maxBombs = maxBombs;
-    }
-
-    public boolean isHaveShield() {
-        return haveShield;
-    }
-
-    public void setHaveShield(boolean haveShield) {
-        this.haveShield = haveShield;
-    }
-
-    public void setPosX(int posX) {
-        this.posX = posX;
-    }
-
-    public void setPosY(int posY) {
-        this.posY = posY;
-    }
-
-    public void setElement(Element element) {
-        this.element = element;
+    // เพิ่มจำนวนระเบิดที่ถือได้สูงสุด
+    public void increaseMaxBombs(int amount) {
+        maxBombs += amount;
     }
 
     // ── Abstract ──────────────────────────────

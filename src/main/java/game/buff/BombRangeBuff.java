@@ -3,10 +3,15 @@ package game.buff;
 import game.character.Character;
 
 public class BombRangeBuff extends Buff {
-    public BombRangeBuff(int posX,int posY){
-        super(posX,posY);
+
+    private static final int RANGE_BONUS = 1;   // เพิ่ม range +1 ช่อง
+
+    public BombRangeBuff() {
+        super("Bomb Range +1", "Bomb range +1 tile.");
     }
 
     @Override
-    public void apply(Character character) {character.setBombRange(character.getBombRange() + 1);}
+    public void apply(Character target) {
+        target.increaseBombRange(RANGE_BONUS);
+    }
 }
