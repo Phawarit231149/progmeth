@@ -9,6 +9,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
@@ -167,7 +169,14 @@ public class GameController extends StackPane {
 
         VBox info = new VBox(20);
         info.setAlignment(Pos.CENTER);
-        Label skillsInfo = new Label("Skills Information\nPress 'U' to close");
+        Label skillsInfo = new Label(
+                "• Bomb Capacity Up: Increase max \n bombs you can drop.\n" +
+                "• Blast Radius: Expand the explosion \n range.\n" +
+                "• High Explosive: Increase bomb \n damage dealt to enemies.\n" +
+                "• Bubble Shield: Protects you from one instance of damage.\n" +
+                "• Quick Heal: Restore your HP \n immediately.");
+        skillsInfo.setFont(Font.font(18));
+
         info.getChildren().add(skillsInfo);
 
         Scene infoScene = new Scene(info, 300, 250);
@@ -300,17 +309,18 @@ public class GameController extends StackPane {
         leftCol.setAlignment(Pos.BOTTOM_CENTER);
         leftCol.getChildren().add(createBombControls()); // นำปุ่มระเบิดมาใส่ที่นี่
 
-        // คอลัมน์ขวา: สำหรับ Skill S1-S5 และปุ่ม Info
+        // Skill & Info
         VBox rightCol = new VBox(10);
         rightCol.setAlignment(Pos.TOP_CENTER);
 
-        // ใส่ Skill S1-S5
-        for (int i = 1; i <= 5; i++) {
-            Button skill = new Button("S" + i);
-            skill.setPrefSize(54, 54);
-            skill.setStyle("-fx-background-radius: 27; -fx-border-radius: 27; -fx-border-color: #90a4ae; -fx-border-width: 3;");
-            rightCol.getChildren().add(skill);
-        }
+        // ใส่ Skills buff
+        StackPane s1 = createSkillImage("s1.jpeg");
+        StackPane s2 = createSkillImage("s2.jpeg");
+        StackPane s3 = createSkillImage("s3.jpeg");
+        StackPane s4 = createSkillImage("s4.jpeg");
+        StackPane s5 = createSkillImage("s5.jpeg");
+
+        rightCol.getChildren().addAll(s1,s2,s3,s4,s5);
 
         // ใส่ Spacer ดันปุ่ม Info ลงไปข้างล่าง
         Region spacer = new Region();
@@ -367,6 +377,41 @@ public class GameController extends StackPane {
 
         bombContainer.getChildren().addAll(explodeBtn, explodeKey, plantBombBtn, plantBombLabel, plantKey);
         return bombContainer;
+    }
+
+    public StackPane createSkillImage(String skillName) {
+        // 1. โหลดรูปภาพ
+        Image img = new Image(getClass().getResourceAsStream("/images/" + skillName));
+        ImageView skill = new ImageView(img);
+
+        // 2. ปรับขนาดรูปให้ "เต็ม" พื้นที่ 54x54
+        double size = 54.0;
+        skill.setFitWidth(size);
+        skill.setFitHeight(size);
+
+        // ⭐️ สำคัญ: เปลี่ยนเป็น false เพื่อให้ภาพยืด/หดจนเต็มวงกลมพอดี
+        skill.setPreserveRatio(false);
+
+        // 3. ตัดรูปให้เป็นวงกลม (เช็คจุดศูนย์กลางให้แม่น)
+        double radius = size / 2;
+        javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
+        skill.setClip(clip);
+
+        // 4. สร้างกรอบ StackPane
+        StackPane container = new StackPane(skill);
+        container.setPrefSize(size, size);
+        container.setMinSize(size, size); // ป้องกัน Layout อื่นมาบีบให้เล็กลง
+        container.setMaxSize(size, size);
+
+        // ⭐️ ปรับสไตล์ขอบ
+        container.setStyle(
+                "-fx-background-radius: " + radius + "; " +
+                        "-fx-border-radius: " + radius + "; " +
+                        "-fx-border-color: #90a4ae; " +
+                        "-fx-border-width: 3;"
+        );
+
+        return container;
     }
 
     // ── BOTTOM HEARTS ─────────────────────────────────────
