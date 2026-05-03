@@ -1,5 +1,6 @@
 package gui;
 
+import game.entity.EasyEnemy;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
@@ -14,6 +15,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import model.StageData;
+
+import java.util.Random;
 
 public class GameController extends StackPane {
 
@@ -131,8 +134,10 @@ public class GameController extends StackPane {
                 "-fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 6 24;");
 
         Button pauseBtn = new Button("| |");
+        /*
         pauseBtn.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; " +
                 "-fx-background-color: #e0e0e0; -fx-background-radius: 8;");
+        */
         pauseBtn.setOnAction(e -> {
             timer.stop();
             showPauseMenu();
@@ -478,6 +483,17 @@ public class GameController extends StackPane {
     private void gameOver(){
         GameOverController gameOverController = new GameOverController(gameStatus,config);
         this.getScene().setRoot(gameOverController);
+    }
+
+    private void spawnEnemy() {
+        Random random = new Random();
+
+        int randomX = random.nextInt(config.getCols());
+        int randomY = random.nextInt(config.getRows());
+        boolean isShielded = random.nextBoolean();
+
+        EasyEnemy slime = new EasyEnemy(1,randomX, randomY,isShielded);
+
     }
 
     public void setGameStatus(Status gameStatus) {

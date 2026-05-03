@@ -50,12 +50,12 @@ public class GameOverController extends BorderPane {
             vbox.getChildren().addAll(title, nextStage, retry, back);
             this.setCenter(vbox);
         }
-        if(gameResult.equals(Status.CLEAR)){
+        if(gameResult.equals(Status.LOSE)){
             title.setText("Mission Fail!");
             vbox.getChildren().addAll(title,retry,back);
             this.setCenter(vbox);
         }
-        if(gameResult.equals(Status.LOSE)){
+        if(gameResult.equals(Status.CLEAR)){
             title.setText("Congratulations!");
             Label subtitle = new Label(".\n.\n.\n.");
             subtitle.setFont(Font.font(24));

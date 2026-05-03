@@ -1,5 +1,6 @@
 package gui;
 
+import game.util.SoundManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -10,8 +11,11 @@ import javafx.scene.layout.VBox;
 
 public class HomeController extends StackPane {
 
+    private SettingsController settingsPane = new SettingsController();
+
     public HomeController() {
         setupUI();
+        SoundManager.playBGM("spongebobBGM.mp3");
     }
 
     private void setupUI() {
@@ -31,9 +35,17 @@ public class HomeController extends StackPane {
             StageSelectController stageSelectController = new StageSelectController();
             this.getScene().setRoot(stageSelectController);
         });
+
         settingButton.setOnAction(e -> {
-            SettingsController settingsController = new SettingsController();
-            this.getScene().setRoot(settingsController);
+            // ⭐️ 2. ดึง Scene ปัจจุบันเก็บไว้
+            javafx.scene.Scene currentScene = this.getScene();
+
+            // ⭐️ 3. เรียกใช้ settingsPane ตัวเดิมที่เราสร้างไว้ข้างบน ไม่ต้อง new ใหม่แล้ว!
+            settingsPane.setOnClose(() -> {
+                currentScene.setRoot(this);
+            });
+
+            currentScene.setRoot(settingsPane);
         });
         quitButton.setOnAction(e -> System.exit(0));
 

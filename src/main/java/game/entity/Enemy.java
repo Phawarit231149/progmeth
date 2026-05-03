@@ -1,6 +1,9 @@
 package game.entity;
 
+import game.character.Character;
 import game.Element;
+
+import java.util.Random;
 
 public abstract class Enemy {
     private int health;
@@ -11,8 +14,9 @@ public abstract class Enemy {
     private Element element;
     private boolean isShielded;
     private Level level;
+    protected Random random = new Random();
 
-    public Enemy(int size,int posX,int posY,Element element,boolean isShielded){
+    public Enemy(int size, int posX,int posY,Element element,boolean isShielded){
         setSize(size);
         setPosX(posX);
         setPosY(posY);
@@ -21,72 +25,45 @@ public abstract class Enemy {
         //this.level=level;
     }
 
-    public void damageDealt(Character character){
-        int damage = t
+
+    public void moveRandomly(int maxCols, int maxRows) {
+        int direction = random.nextInt(4); // สุ่มได้เลข 0, 1, 2, หรือ 3
+
+        int nextX = getPosX();
+        int nextY = getPosY();
+
+        // กำหนดทิศทางตามเลขที่สุ่มได้
+        switch (direction) {
+            case 0 -> nextY--; // 0: เดินขึ้น (Y ลดลง)
+            case 1 -> nextY++; // 1: เดินลง (Y เพิ่มขึ้น)
+            case 2 -> nextX--; // 2: เดินซ้าย (X ลดลง)
+            case 3 -> nextX++; // 3: เดินขวา (X เพิ่มขึ้น)
+        }
+
+        // เช็คว่าช่องที่จะเดินไป ไม่ได้หลุดออกนอกขอบของด่าน (Grid)
+        if (nextX >= 0 && nextX < maxCols && nextY >= 0 && nextY < maxRows) {
+            // ถ้าไม่ทะลุขอบ ก็ให้เดินไปตำแหน่งใหม่ได้
+            setPosX(nextX);
+            setPosY(nextY);
+        }
     }
 
     // setter & getter
-    public int getHealth() {
-        return health;
-    }
+    public int getHealth() {return health;}
+    public int getDamage() {return damage;}
+    public int getSize() {return size;}
+    public int getPosX() {return posX;}
+    public int getPosY() {return posY;}
+    public Element getElement() {return element;}
+    public boolean isShielded() {return isShielded;}
+    public Level getLevel() {return level;}
 
-    public void setHealth(int health) {
-        this.health = health;
-    }
-
-    public int getDamage() {
-        return damage;
-    }
-
-    public void setDamage(int damage) {
-        this.damage = damage;
-    }
-
-    public int getSize() {
-        return size;
-    }
-
-    public void setSize(int size) {
-        this.size = size;
-    }
-
-    public int getPosX() {
-        return posX;
-    }
-
-    public void setPosX(int posX) {
-        this.posX = posX;
-    }
-
-    public int getPosY() {
-        return posY;
-    }
-
-    public void setPosY(int posY) {
-        this.posY = posY;
-    }
-
-    public Element getElement() {
-        return element;
-    }
-
-    public void setElement(Element element) {
-        this.element = element;
-    }
-
-    public boolean isShielded() {
-        return isShielded;
-    }
-
-    public void setShielded(boolean shielded) {
-        isShielded = shielded;
-    }
-
-    public Level getLevel() {
-        return level;
-    }
-
-    public void setLevel(Level level) {
-        this.level = level;
-    }
+    public void setHealth(int health) {this.health = health;}
+    public void setDamage(int damage) {this.damage = damage;}
+    public void setSize(int size) {this.size = size;}
+    public void setPosX(int posX) {this.posX = posX;}
+    public void setPosY(int posY) {this.posY = posY;}
+    public void setElement(Element element) {this.element = element;}
+    public void setShielded(boolean shielded) {isShielded = shielded;}
+    public void setLevel(Level level) {this.level = level;}
 }

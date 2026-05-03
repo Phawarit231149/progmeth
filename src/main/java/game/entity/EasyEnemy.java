@@ -3,10 +3,10 @@ package game.entity;
 import game.Element;
 
 public class EasyEnemy extends Enemy{
-    public EasyEnemy(int health, int damage, int size, int posX, int posY, boolean isShielded){
+    public EasyEnemy(int size, int posX, int posY, boolean isShielded){
         super(size, posX, posY, Element.NONE, isShielded);
-        setHealth(health);
-        setDamage(damage);
+        setHealth(1);
+        setDamage(1);
         setLevel(Level.EASY);
     }
 

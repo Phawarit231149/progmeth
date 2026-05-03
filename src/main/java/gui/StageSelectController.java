@@ -19,6 +19,7 @@ public class StageSelectController extends BorderPane {
         initializeStageSelection(); // ✅ ต้องมาก่อน
 
         Button back = new Button("X");
+        /*
         back.setStyle(
                 "-fx-background-radius: 50;" +
                         "-fx-min-width: 40px;" +
@@ -27,6 +28,7 @@ public class StageSelectController extends BorderPane {
                         "-fx-font-weight: bold;" +
                         "-fx-font-size: 18px;"
         );
+         */
 
         back.setOnAction(e -> {
             HomeController homeController = new HomeController();

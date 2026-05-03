@@ -1,5 +1,7 @@
 package game.character;
 
+import game.Element;
+
 public abstract class Character {
 
     // Stats
@@ -41,7 +43,7 @@ public abstract class Character {
     }
 
     public int calculateDamage(Element enemyElement) {
-        if (enemyElement == null) {
+        if (enemyElement == null || enemyElement.equals(element)) {
             return damage; // ดาเมจปกติ
         }
         if (isWeakAgainst(enemyElement)) {
@@ -53,11 +55,11 @@ public abstract class Character {
         return damage; // เท่ากัน → ดาเมจปกติ
     }
 
-    // ── ตรวจสอบ element ───────────────────────
     private boolean isStrongAgainst(Element other) {
-        return (element == Element.FIRE    && other == Element.WATER)    ||
+        return ( element== Element.FIRE    && other == Element.WATER)    ||
                 (element == Element.WATER   && other == Element.ELECTRIC) ||
-                (element == Element.ELECTRIC && other == Element.FIRE);
+                (element == Element.ELECTRIC && other == Element.FIRE) ||
+                (other == Element.NONE);
     }
 
     private boolean isWeakAgainst(Element other) {
@@ -88,6 +90,50 @@ public abstract class Character {
     public void setPos(int x, int y) { posX = x; posY = y; }
     public void setShield(boolean s) { haveShield = s; }
     public boolean isAlive()         { return health > 0; }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
+    }
+
+    public void setDamage(int damage) {
+        this.damage = damage;
+    }
+
+    public void setDamageBomb(int damageBomb) {
+        this.damageBomb = damageBomb;
+    }
+
+    public void setBombRange(int bombRange) {
+        this.bombRange = bombRange;
+    }
+
+    public void setMaxBombs(int maxBombs) {
+        this.maxBombs = maxBombs;
+    }
+
+    public boolean isHaveShield() {
+        return haveShield;
+    }
+
+    public void setHaveShield(boolean haveShield) {
+        this.haveShield = haveShield;
+    }
+
+    public void setPosX(int posX) {
+        this.posX = posX;
+    }
+
+    public void setPosY(int posY) {
+        this.posY = posY;
+    }
+
+    public void setElement(Element element) {
+        this.element = element;
+    }
 
     // ── Abstract ──────────────────────────────
     public abstract String getDescription();

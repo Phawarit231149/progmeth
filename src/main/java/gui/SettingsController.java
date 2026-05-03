@@ -1,5 +1,6 @@
 package gui;
 
+import game.util.SoundManager; // ⭐️ 1. อย่าลืม Import คลาส SoundManager เข้ามา
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -11,45 +12,46 @@ import javafx.scene.layout.VBox;
 
 public class SettingsController extends StackPane {
 
-    private Runnable onClose; // ✅ callback
+    private Runnable onClose;
 
     public SettingsController() {
         setupUI();
     }
 
-    // ✅ ให้ HomeController set callback ตัวนี้
     public void setOnClose(Runnable onClose) {
         this.onClose = onClose;
     }
 
     private void setupUI() {
-
         Label title = new Label("Settings");
         title.setStyle("-fx-font-size: 36px; -fx-font-weight: bold;");
 
-        Slider overallSlider = createSlider();
-        Slider sfxSlider = createSlider();
-        Slider musicSlider = createSlider();
+        // ⭐️ 2. สร้าง Slider โดยดึงค่าเริ่มต้นมาจาก SoundManager
+        Slider overallSlider = createSlider(SoundManager.getOverallVolume());
+        Slider sfxSlider = createSlider(SoundManager.getSfxVolume());
+        Slider musicSlider = createSlider(SoundManager.getMusicVolume());
 
+        // ⭐️ 3. เวลาเลื่อน Slider ให้สั่งอัปเดตค่าไปที่ SoundManager ด้วย
         overallSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             sfxSlider.setValue(newVal.doubleValue());
             musicSlider.setValue(newVal.doubleValue());
+            SoundManager.setOverallVolume(newVal.doubleValue()); // เซฟค่า Overall
         });
 
-        Button closeButton = new Button("X");
-        closeButton.setStyle(
-                "-fx-background-radius: 50;" +
-                        "-fx-min-width: 40px;" +
-                        "-fx-min-height: 40px;" +
-                        "-fx-background-color: #d1d1d1;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-font-size: 18px;"
-        );
+        sfxSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            SoundManager.setSfxVolume(newVal.doubleValue()); // เซฟค่า SFX
+        });
 
-        // ✅ กดปุ่ม X แล้ว trigger callback กลับไป
+        musicSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            SoundManager.setMusicVolume(newVal.doubleValue()); // เซฟค่า Music
+        });
+
+        // ... (ปุ่ม Close Button ของคุณเหมือนเดิม) ...
+        Button closeButton = new Button("X");
         closeButton.setOnAction(e -> {
-            HomeController homeController = new HomeController();
-            this.getScene().setRoot(homeController);
+            if (this.onClose != null) {
+                this.onClose.run();
+            }
         });
 
         StackPane.setAlignment(closeButton, Pos.TOP_RIGHT);
@@ -61,12 +63,13 @@ public class SettingsController extends StackPane {
                 createRow("SFX Volume", sfxSlider),
                 createRow("Music Volume", musicSlider)
         );
-        vbox.setAlignment(Pos.CENTER_LEFT);
-        vbox.setPadding(new Insets(50, 0, 0, 80));
+        vbox.setAlignment(Pos.CENTER);
+        // ...
 
         this.getChildren().addAll(vbox, closeButton);
     }
 
+    // ... (เมธอด createRow เหมือนเดิม) ...
     private HBox createRow(String labelText, Slider slider) {
         Label label = new Label(labelText);
         label.setStyle("-fx-font-size: 18px;");
@@ -91,8 +94,9 @@ public class SettingsController extends StackPane {
         return row;
     }
 
-    private Slider createSlider() {
-        Slider slider = new Slider(0, 100, 50);
+    // ⭐️ 4. แก้ให้ createSlider รับพารามิเตอร์ initialValue
+    private Slider createSlider(double initialValue) {
+        Slider slider = new Slider(0, 100, initialValue); // ใช้ initialValue แทนเลข 50
         slider.setPrefWidth(400);
         return slider;
     }
