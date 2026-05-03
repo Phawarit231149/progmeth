@@ -146,6 +146,7 @@ public class GameController extends StackPane {
 
         // แสดงผลตรงกลางหน้าจอหลัก
         popupStage.showAndWait();
+        timer.play();
     }
 
     // ── GRID ─────────────────────────────────────────────
