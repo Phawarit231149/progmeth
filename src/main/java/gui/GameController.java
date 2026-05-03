@@ -36,6 +36,7 @@ public class GameController extends StackPane {
     private Timeline timer;
     private Status gameStatus;
     private Stage infoPopup;
+    private Stage pausePopup;
 
     // Button
     private Button explodeBtn;
@@ -65,6 +66,9 @@ public class GameController extends StackPane {
                 case P:
                     plantBombBtn.setStyle(pressedStyle);
                     plantBombBtn.fire();
+                    break;
+                case ESCAPE:
+                    showPauseMenu();
                     break;
                 default:
                     break;
@@ -179,10 +183,18 @@ public class GameController extends StackPane {
     }
 
     private void showPauseMenu() {
-        Stage popupStage = new Stage();
-        // ทำให้กดหน้าจอหลักไม่ได้จนกว่าจะปิดอันนี้
-        popupStage.initModality(Modality.APPLICATION_MODAL);
-        popupStage.setTitle("Paused");
+        // 1. ถ้าเปิดอยู่แล้ว ให้ปิดและเล่นต่อ (Toggle Off)
+        if (pausePopup != null && pausePopup.isShowing()) {
+            pausePopup.close();
+            timer.play();
+            return;
+        }
+
+        timer.stop();
+
+        this.pausePopup = new Stage();
+        pausePopup.initModality(Modality.APPLICATION_MODAL);
+        pausePopup.setTitle("Paused");
 
         Label pauseLabel = new Label("GAME PAUSED");
         pauseLabel.setFont(Font.font(24));
@@ -190,31 +202,39 @@ public class GameController extends StackPane {
         Button resumeBtn = new Button("Resume");
         resumeBtn.setPrefWidth(100);
         resumeBtn.setOnAction(e -> {
-            popupStage.close();
+            pausePopup.close();
             timer.play();
         });
 
         Button quitBtn = new Button("Quit to home");
         quitBtn.setPrefWidth(100);
         quitBtn.setOnAction(e -> {
-            popupStage.close();
-            // โค้ดกลับไปหน้า Menu ของคุณ
+            pausePopup.close();
             this.getScene().setRoot(new HomeController());
         });
 
-        VBox pauseLayout = new VBox(20);
-        pauseLayout.getChildren().addAll(pauseLabel, resumeBtn, quitBtn);
+        VBox pauseLayout = new VBox(20, pauseLabel, resumeBtn, quitBtn);
         pauseLayout.setAlignment(Pos.CENTER);
         pauseLayout.setPadding(new Insets(30));
         pauseLayout.setStyle("-fx-background-color: white; -fx-border-color: black;");
 
         Scene pauseScene = new Scene(pauseLayout, 300, 250);
-        popupStage.setScene(pauseScene);
 
-        // แสดงผลตรงกลางหน้าจอหลัก
-        popupStage.showAndWait();
-        timer.play();
+        pauseScene.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                pausePopup.close();
+                timer.play();
+                this.requestFocus();
+            }
+        });
+
+        pausePopup.setScene(pauseScene);
+
+        pausePopup.setOnCloseRequest(e -> timer.play());
+
+        pausePopup.show();
     }
+
 
     // ── GRID ─────────────────────────────────────────────
     private GridPane buildGrid(double cellSize) {
@@ -335,7 +355,9 @@ public class GameController extends StackPane {
         Label plantKey = new Label("[P]");
         plantKey.setFont(Font.font(15));
 
-        plantBombBtn.setOnAction(e ->{return;});
+        plantBombBtn.setOnAction(e ->{
+            return;
+        });
 
 
         bombContainer.getChildren().addAll(explodeBtn, explodeKey, plantBombBtn, plantBombLabel, plantKey);
