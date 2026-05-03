@@ -7,6 +7,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
@@ -87,19 +88,30 @@ public class GameController extends StackPane {
     private void setupUI() {
         BorderPane root = new BorderPane();
 
-        // top bar
         root.setTop(buildTopBar());
-
-        // center grid
-        root.setCenter(buildGrid());
-
-        // right panel
         root.setRight(buildRightPanel());
-
-        // bottom hearts
         root.setBottom(buildBottomBar());
 
+        root.setPrefSize(900, 600);
         this.getChildren().add(root);
+
+        // ✅ เพิ่ม padding เผื่อให้มากขึ้น
+        double rightW = 210;  // เพิ่มจาก 189
+        double topH   = 80;   // เพิ่มจาก 62
+        double botH   = 60;   // เพิ่มจาก 51
+
+        double availableW = 900 - rightW - 10;
+        double availableH = 600 - topH - botH - 10;
+
+        double cellSize = Math.floor(Math.min(
+                availableW / config.getCols(),
+                availableH / config.getRows()
+        ));
+        cellSize = Math.max(cellSize, 8);
+
+        StackPane centerHolder = new StackPane(buildGrid(cellSize));
+        centerHolder.setAlignment(Pos.CENTER);
+        root.setCenter(centerHolder);
     }
 
     // ── TOP BAR ──────────────────────────────────────────
@@ -205,7 +217,7 @@ public class GameController extends StackPane {
     }
 
     // ── GRID ─────────────────────────────────────────────
-    private GridPane buildGrid() {
+    private GridPane buildGrid(double cellSize) {
         GridPane grid = new GridPane();
         grid.setHgap(2);
         grid.setVgap(2);
@@ -218,16 +230,29 @@ public class GameController extends StackPane {
             for (int c = 0; c < config.getCols(); c++) {
                 final int row = r, col = c;
                 Button cell = new Button();
-                cell.setPrefSize(50, 50);
+                cell.setMinSize(cellSize, cellSize);
+                cell.setMaxSize(cellSize, cellSize);
+                cell.setPrefSize(cellSize, cellSize);
                 cell.setStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
                 cell.setOnAction(e -> onCellClick(cell, row, col));
                 cells[r][c] = cell;
                 grid.add(cell, c, r);
             }
         }
+
+        for (int c = 0; c < config.getCols(); c++) {
+            ColumnConstraints cc = new ColumnConstraints(cellSize);
+            cc.setHgrow(Priority.NEVER);
+            grid.getColumnConstraints().add(cc);
+        }
+        for (int r = 0; r < config.getRows(); r++) {
+            RowConstraints rc = new RowConstraints(cellSize);
+            rc.setVgrow(Priority.NEVER);
+            grid.getRowConstraints().add(rc);
+        }
+
         return grid;
     }
-
     private void onCellClick(Button cell, int row, int col) {
         // ถ้าช่องนั้นว่าง และเรายังมีระเบิดเหลือ
         if (cell.getUserData() == null) {
