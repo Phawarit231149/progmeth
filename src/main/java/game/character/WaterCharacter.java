@@ -1,5 +1,7 @@
 package game.character;
 
+import game.Element;
+
 public class WaterCharacter extends Character implements Skillable {
 
     // ── Skill settings ────────────────────────

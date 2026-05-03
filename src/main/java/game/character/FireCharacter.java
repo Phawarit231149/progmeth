@@ -1,5 +1,6 @@
 package game.character;
 
+import game.Element;
 import game.map.Rock;
 import game.map.Seaweed;
 import game.map.Tile;

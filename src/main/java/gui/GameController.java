@@ -478,16 +478,6 @@ public class GameController extends StackPane {
 
         return grid;
     }
-    private void onCellClick(Button cell, int row, int col) {
-        // ถ้าช่องนั้นว่าง และเรายังมีระเบิดเหลือ
-        if (cell.getUserData() == null) {
-            plantBomb(cell);
-        }
-        // ถ้าช่องนั้นมีระเบิดอยู่แล้ว ให้เก็บระเบิดคืน (Unplant)
-        else if (cell.getUserData().equals("bomb")) {
-            removeBomb(cell);
-        }
-    }
 
     // ── RIGHT PANEL ─────────────────────────────────────
     private HBox buildRightPanel() {
@@ -511,13 +501,6 @@ public class GameController extends StackPane {
         StackPane s5 = createSkillImage("s5.jpeg");
 
         rightCol.getChildren().addAll(s1,s2,s3,s4,s5);
-        for (int i = 1; i <= 5; i++) {
-            Button skill = new Button("S" + i);
-            skill.setPrefSize(54, 54);
-            skill.setFocusTraversable(false);
-            skill.setStyle("-fx-background-radius: 27; -fx-border-radius: 27; -fx-border-color: #90a4ae; -fx-border-width: 3;");
-            rightCol.getChildren().add(skill);
-        }
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);

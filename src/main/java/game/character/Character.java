@@ -1,5 +1,7 @@
 package game.character;
 
+import game.Element;
+
 public abstract class Character {
 
     // Stats
