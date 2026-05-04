@@ -119,15 +119,15 @@ public class StageSelectController extends BorderPane {
         characterBox.setAlignment(Pos.CENTER_LEFT);
         characterBox.setPadding(new Insets(20, 0, 0, 0));
 
-        Button mrKrabs = createSelectCharacterButton("Mr.Krabs","characterProfile/mrKrabPfp.jpg");
+        Button patrick = createSelectCharacterButton("Patrick","characterProfile/patrickPfp.jpeg");
         Button squidWard = createSelectCharacterButton("Squidward","characterProfile/squidwardPfp.jpg");
         Button spongeBob = createSelectCharacterButton("SpongeBob","characterProfile/spongebobPfp.jpg");
-        characterBox.getChildren().addAll(mrKrabs, squidWard, spongeBob);
+        characterBox.getChildren().addAll(patrick, squidWard, spongeBob);
 
         Label choosingCharacter = new Label("Character :   None");
         choosingCharacter.setFont(Font.font(20));
 
-        mrKrabs.setOnAction(e -> handleCharacterSelect("Mr.Krabs",choosingCharacter,mrKrabs));
+        patrick.setOnAction(e -> handleCharacterSelect("Patrick",choosingCharacter,patrick));
         squidWard.setOnAction(e -> handleCharacterSelect("Squidward",choosingCharacter,squidWard));
         spongeBob.setOnAction(e -> handleCharacterSelect("SpongeBob",choosingCharacter,spongeBob));
 

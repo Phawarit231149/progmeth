@@ -75,9 +75,9 @@ public class SettingsController extends StackPane {
         label.setStyle("-fx-font-size: 18px;");
         label.setPrefWidth(180);
 
-        Button resetButton = new Button("✓");
+        Button resetButton = new Button("set to default"); //✓
         resetButton.setStyle("-fx-font-size: 16px;");
-        resetButton.setPrefWidth(40);
+        resetButton.setPrefWidth(200);
         resetButton.setPrefHeight(40);
         resetButton.setOnAction(e -> slider.setValue(50));
 

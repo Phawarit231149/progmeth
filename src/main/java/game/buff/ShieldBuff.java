@@ -4,8 +4,8 @@ import game.character.Character;
 
 public class ShieldBuff extends Buff {
 
-    public ShieldBuff() {
-        super("Shield", "Block one incoming attack.");
+    public ShieldBuff(int r, int c) {
+        super(r,c);
     }
 
     @Override

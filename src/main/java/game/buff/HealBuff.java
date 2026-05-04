@@ -6,8 +6,8 @@ public class HealBuff extends Buff {
 
     private static final int HEAL_AMOUNT = 1;   // ฟื้น 1 หัวใจ
 
-    public HealBuff() {
-        super("Heal", "Restore +1 HP (capped at max).");
+    public HealBuff(int r, int c) {
+        super(r,c);
     }
 
     @Override

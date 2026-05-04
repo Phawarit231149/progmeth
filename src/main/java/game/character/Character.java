@@ -91,6 +91,46 @@ public abstract class Character {
     public void setShield(boolean s) { haveShield = s; }
     public boolean isAlive()         { return health > 0; }
 
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
+    }
+
+    public void setDamage(int damage) {
+        this.damage = damage;
+    }
+
+    public void setDamageBomb(int damageBomb) {
+        this.damageBomb = damageBomb;
+    }
+
+    public void setBombRange(int bombRange) {
+        this.bombRange = bombRange;
+    }
+
+    public void setMaxBombs(int maxBombs) {
+        this.maxBombs = maxBombs;
+    }
+
+    public void setHaveShield(boolean haveShield) {
+        this.haveShield = haveShield;
+    }
+
+    public void setPosX(int posX) {
+        this.posX = posX;
+    }
+
+    public void setPosY(int posY) {
+        this.posY = posY;
+    }
+
+    public void setElement(Element element) {
+        this.element = element;
+    }
+
     // ── Buff helpers ──────────────────────────
     // เพิ่ม health (cap ที่ maxHealth ไม่ให้เกิน)
     public void heal(int amount) {

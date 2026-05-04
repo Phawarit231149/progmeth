@@ -16,7 +16,7 @@ public class HomeController extends StackPane {
 
     public HomeController() {
         setupUI();
-        SoundManager.playBGM("spongebobBGM.mp3");
+        //SoundManager.playBGM("spongebobBGM.mp3");
     }
 
     private void setupUI() {

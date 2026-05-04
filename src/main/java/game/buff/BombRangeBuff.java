@@ -6,8 +6,8 @@ public class BombRangeBuff extends Buff {
 
     private static final int RANGE_BONUS = 1;   // เพิ่ม range +1 ช่อง
 
-    public BombRangeBuff() {
-        super("Bomb Range +1", "Bomb range +1 tile.");
+    public BombRangeBuff(int r, int c) {
+        super(r,c);
     }
 
     @Override

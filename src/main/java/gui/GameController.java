@@ -1,6 +1,7 @@
 package gui;
 
 import game.Element;
+import game.buff.*;
 import game.character.Character;
 import game.character.ElectricCharacter;
 import game.character.FireCharacter;
@@ -38,7 +39,8 @@ public class GameController extends StackPane {
     private int playerCol;
     private Tile[][] map;          // พื้น (Tile, Rock)
     private Seaweed[][] seaweeds;  // seaweed objects (วางทับ tile)
-    private boolean[][] hasBomb;   // ช่องไหนมีระเบิด
+    private boolean[][] hasBomb;
+    private Buff[][] buffMap;
 
     // game state
     private int hearts = 5;
@@ -70,11 +72,17 @@ public class GameController extends StackPane {
 
     // ── Images (โหลดจาก resources/) ────────────
     private Image spongebobImg;
-    private Image mrKrabsImg;
+    private Image patrickImg;
     private Image squidWardImg;
     private Image rockImg;
     private Image seaweedImg;
     private Image bombImg;
+    private Image maxBombImg;
+    private Image bombRangeImg;
+    private Image bombDamageImg;
+    private Image bubbleShieldImg;
+    private Image healImg;
+
     private double cellSize;       // เก็บไว้ใช้กับ ImageView
 
     private AudioClip explodeSfx;
@@ -82,7 +90,7 @@ public class GameController extends StackPane {
     public GameController(StageData config, String name) {
         this.config = config;
         this.name = name;
-        if(name.equals("Mr.Krabs")){this.element = Element.FIRE;}
+        if(name.equals("Patrick")){this.element = Element.FIRE;}
         if(name.equals("Squidward")){this.element = Element.WATER;}
         if(name.equals("SpongeBob")){this.element = Element.ELECTRIC;}
 
@@ -133,11 +141,17 @@ public class GameController extends StackPane {
     // ── Load images safely (null ถ้าไม่เจอ) ─────────────
     private void loadImages() {
         spongebobImg = tryLoadImage("/images/gamePlay/spongebob.png");   // ใช้ชื่อไฟล์ตามที่ใส่ใน resources
-        mrKrabsImg    = tryLoadImage("/images/gamePlay/mrKrab.png");
+        patrickImg    = tryLoadImage("/images/gamePlay/patrick.png");
         squidWardImg = tryLoadImage("/images/gamePlay/squidward.png");
         rockImg      = tryLoadImage("/images/gamePlay/rock.png");
         seaweedImg   = tryLoadImage("/images/gamePlay/seaweed.png");
         bombImg      = tryLoadImage("/images/gamePlay/bomb.png");
+
+        maxBombImg = tryLoadImage("/images/buffIcon/increaseMaximumBomb.png");
+        bombRangeImg = tryLoadImage("/images/buffIcon/increaseBombRange.png");
+        bombDamageImg = tryLoadImage("/images/buffIcon/increaseBombDamage.png");
+        bubbleShieldImg = tryLoadImage("/images/buffIcon/bubbleShield.png");
+        healImg       = tryLoadImage("/images/buffIcon/heal.png");
     }
 
     private void loadAudio(){
@@ -214,6 +228,7 @@ public class GameController extends StackPane {
         map      = new Tile[rows][cols];
         seaweeds = new Seaweed[rows][cols];
         hasBomb  = new boolean[rows][cols];
+        buffMap = new Buff[rows][cols];
 
         // initialize every tile as plain Tile
         for (int r = 0; r < rows; r++) {
@@ -237,8 +252,66 @@ public class GameController extends StackPane {
             int r = p[0], c = p[1];
             if (r > 0 && r < rows && c > 0 && c < cols) {
                 seaweeds[r][c] = new Seaweed(r, c);
+
+                double chance = Math.random();
+                if (chance < 0.1) {buffMap[r][c] = new MaxBombBuff(r,c);}
+                else if (chance < 0.2){buffMap[r][c] = new BombRangeBuff(r,c);}
+                else if (chance < 0.3){buffMap[r][c] = new BombDamageBuff(r,c);}
+                else if (chance < 0.4){buffMap[r][c] = new HealBuff(r,c);}
+                else if (chance < 0.5){buffMap[r][c] = new ShieldBuff(r,c);}
             }
         }
+
+        int row1 = (int)(Math.random() * config.getRows());
+        int col1 = (int)(Math.random() * config.getCols());
+        int[][] maxBombPositions = {{row1,col1}};
+        for (int[] p : maxBombPositions) {
+            int  r = p[0], c = p[1];
+            if (r > 0 && r < rows && c > 0 && c < cols) {
+                buffMap[r][c] = new MaxBombBuff(r,c);
+            }
+        }
+
+        int row2 = (int)(Math.random() * config.getRows());
+        int col2 = (int)(Math.random() * config.getCols());
+        int[][] bombRangePositions = {{row2,col2}};
+        for (int[] p : bombRangePositions) {
+            int  r = p[0], c = p[1];
+            if (r > 0 && r < rows && c > 0 && c < cols) {
+                buffMap[r][c] = new BombRangeBuff(r,c);
+            }
+        }
+
+        int row3 = (int)(Math.random() * config.getRows());
+        int col3 = (int)(Math.random() * config.getCols());
+        int[][] damagePositions = {{row3,col3}}; // กำหนดพิกัดที่ต้องการ
+        for (int[] p : damagePositions) {
+            int r = p[0], c = p[1];
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                buffMap[r][c] = new BombDamageBuff(r, c);
+            }
+        }
+
+        int row4 = (int)(Math.random() * config.getRows());
+        int col4 = (int)(Math.random() * config.getCols());
+        int[][] healPositions = {{row4,col4}}; // กำหนดพิกัดที่ต้องการ
+        for (int[] p : healPositions) {
+            int r = p[0], c = p[1];
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                buffMap[r][c] = new HealBuff(r, c);
+            }
+        }
+
+        int row5 = (int)(Math.random() * config.getRows());
+        int col5 = (int)(Math.random() * config.getCols());
+        int[][] shieldPositions = {{row5,col5}}; // กำหนดพิกัดที่ต้องการ
+        for (int[] p : shieldPositions) {
+            int r = p[0], c = p[1];
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                buffMap[r][c] = new ShieldBuff(r, c);
+            }
+        }
+
     }
 
     // ── Movement ────────────────────────────────────────
@@ -255,6 +328,29 @@ public class GameController extends StackPane {
         playerRow = nr;
         playerCol = nc;
         player.setPos(playerCol, playerRow);
+
+        if (buffMap[playerRow][playerCol] != null) {
+            Buff currentBuff = buffMap[playerRow][playerCol];
+
+            // 1. ส่งผลกับตัวละคร
+            currentBuff.apply(player);
+
+            // 2. ถ้าเป็นบัฟที่ส่งผลต่อจำนวนระเบิดใน UI (ต้องอัปเดต Label ด้วย)
+            if (currentBuff instanceof MaxBombBuff) {
+                maxBombs++;
+                bombsLeft++;
+                updateBombLabel();
+            }else if (currentBuff instanceof HealBuff) {
+                if (hearts < 5) hearts++;
+                updateHearts();
+            }
+
+            // 3. ลบบัฟออกจากแผนที่หลังจากกินแล้ว
+            buffMap[playerRow][playerCol] = null;
+
+            // 4. (Optional) เล่นเสียงเก็บไอเทม
+            // SoundManager.playSFX(pickupSfx);
+        }
         renderGrid();
     }
 
@@ -275,18 +371,27 @@ public class GameController extends StackPane {
         // พื้นหลังพื้นปกติทุกครั้ง
         String baseStyle = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
 
-        Image playerImg = null;
-        if(name.equals("Mr.Krabs")){playerImg  = mrKrabsImg  ;}
-        if(name.equals("Squidward")){playerImg = squidWardImg;}
-        if(name.equals("SpongeBob")){playerImg = spongebobImg;}
-
         if (r == playerRow && c == playerCol) {
-            // Player — ใช้ SpongeBob ถ้ามีรูป (electric), MrKrab ถ้ามี (เผื่อ character อื่น)
+            Image playerImg = null;
+            if(name.equals("Patrick")){playerImg  = patrickImg  ;}
+            if(name.equals("Squidward")){playerImg = squidWardImg;}
+            if(name.equals("SpongeBob")){playerImg = spongebobImg;}
+
+            // ⭐️ เช็ค Shield เพื่อกำหนด Style เส้นขอบ
+            String playerStyle = baseStyle;
+            if (player.hasShield()) {
+                playerStyle += "-fx-border-color: #00E5FF; " +  // สีฟ้าสว่าง (Cyan)
+                        "-fx-border-width: 4px; " +      // ความหนาเส้น
+                        "-fx-border-radius: 100; " +    // ทำให้เส้นขอบโค้งเป็นวงกลม
+                        "-fx-background-radius: 100;";   // ทำให้พื้นหลังโค้งตาม (ถ้ามี)
+            }
+
             if (playerImg != null) {
-                cell.setStyle(baseStyle);
+                cell.setStyle(playerStyle);
                 cell.setGraphic(makeCellImage(playerImg));
             } else {
-                cell.setStyle("-fx-background-color: #fff176; -fx-border-color: #f57f17; -fx-font-weight: bold;");
+                // กรณีไม่มีรูป ให้เปลี่ยนสีพื้นหลังตัว S แทน
+                cell.setStyle(playerStyle + "-fx-background-color: #fff176; -fx-font-weight: bold;");
                 cell.setText("S");
             }
             return;
@@ -321,6 +426,24 @@ public class GameController extends StackPane {
             }
             return;
         }
+
+        if (buffMap[r][c] != null) {
+            Image bImg = null;
+            Buff b = buffMap[r][c];
+
+            if (b instanceof MaxBombBuff) bImg = maxBombImg;
+            else if (b instanceof BombRangeBuff) bImg = bombRangeImg;
+            else if (b instanceof BombDamageBuff) bImg = bombDamageImg;
+            else if (b instanceof ShieldBuff) bImg = bubbleShieldImg;
+            else if (b instanceof HealBuff) bImg = healImg;
+
+            if (bImg != null) {
+                cell.setStyle(baseStyle);
+                cell.setGraphic(makeCellImage(bImg));
+                return;
+            }
+        }
+
         // plain tile (or destroyed seaweed → ผ่านได้)
         cell.setStyle(baseStyle);
     }
@@ -699,9 +822,15 @@ public class GameController extends StackPane {
                         }
                         if((rr == playerRow && cc == playerCol) || (r == playerRow && c == playerCol)){
                             if(!takeDamage){
-                                hearts --;
+                                if (player.hasShield()){
+                                    player.setShield(false);
+                                }
+                                else if (! player.hasShield()){
+                                    hearts -= player.getDamageBomb();
+                                    //player.takeDamage(player.getDamageBomb());
+                                    updateHearts();
+                                }
                                 takeDamage = true;
-                                updateHearts();
                             }
                         }
                     }

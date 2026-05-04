@@ -48,6 +48,8 @@ public abstract class Enemy {
         }
     }
 
+    //public void attack
+
     // setter & getter
     public int getHealth() {return health;}
     public int getDamage() {return damage;}
