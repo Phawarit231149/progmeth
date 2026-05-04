@@ -215,8 +215,10 @@ public class GameController extends StackPane {
             default:
                 break;
         }
-        playerRow = 0;
-        playerCol = 0;
+        // อ่าน spawn point จาก layout (ตัว 'C' ใน StageData)
+        int[] spawn = config.getPlayerSpawn();
+        playerRow = spawn[0];
+        playerCol = spawn[1];
         player.setPos(playerCol, playerRow);
     }
 
@@ -230,88 +232,28 @@ public class GameController extends StackPane {
         hasBomb  = new boolean[rows][cols];
         buffMap = new Buff[rows][cols];
 
-        // initialize every tile as plain Tile
+        // อ่าน layout จาก StageData
+        //   .  = empty
+        //   R  = rock
+        //   S  = seaweed
+        //   C  = player spawn  (เป็นพื้นเปล่า ตัวละครจะวาดทับ)
+        //   P  = enemy spawn   (เป็นพื้นเปล่า ใช้ทีหลัง)
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 map[r][c] = new Tile(r, c);
+                char ch = config.tileAt(r, c);
+                switch (ch) {
+                    case 'R':
+                        map[r][c] = new Rock(r, c);
+                        break;
+                    case 'S':
+                        seaweeds[r][c] = new Seaweed(r, c);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
-
-        // place rocks (hardcoded for demo)
-        int[][] rockPositions = { {2,3}, {2,4}, {3,3}, {5,5}, {5,6}, {7,2}, {7,8} };
-        for (int[] p : rockPositions) {
-            int r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                map[r][c] = new Rock(r, c);
-            }
-        }
-
-        // place seaweeds (hardcoded for demo)
-        int[][] seaweedPositions = { {1,5}, {2,7}, {4,2}, {4,7}, {6,4}, {8,5}, {8,9} };
-        for (int[] p : seaweedPositions) {
-            int r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                seaweeds[r][c] = new Seaweed(r, c);
-
-                double chance = Math.random();
-                if (chance < 0.1) {buffMap[r][c] = new MaxBombBuff(r,c);}
-                else if (chance < 0.2){buffMap[r][c] = new BombRangeBuff(r,c);}
-                else if (chance < 0.3){buffMap[r][c] = new BombDamageBuff(r,c);}
-                else if (chance < 0.4){buffMap[r][c] = new HealBuff(r,c);}
-                else if (chance < 0.5){buffMap[r][c] = new ShieldBuff(r,c);}
-            }
-        }
-
-        int row1 = (int)(Math.random() * config.getRows());
-        int col1 = (int)(Math.random() * config.getCols());
-        int[][] maxBombPositions = {{row1,col1}};
-        for (int[] p : maxBombPositions) {
-            int  r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                buffMap[r][c] = new MaxBombBuff(r,c);
-            }
-        }
-
-        int row2 = (int)(Math.random() * config.getRows());
-        int col2 = (int)(Math.random() * config.getCols());
-        int[][] bombRangePositions = {{row2,col2}};
-        for (int[] p : bombRangePositions) {
-            int  r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                buffMap[r][c] = new BombRangeBuff(r,c);
-            }
-        }
-
-        int row3 = (int)(Math.random() * config.getRows());
-        int col3 = (int)(Math.random() * config.getCols());
-        int[][] damagePositions = {{row3,col3}}; // กำหนดพิกัดที่ต้องการ
-        for (int[] p : damagePositions) {
-            int r = p[0], c = p[1];
-            if (r >= 0 && r < rows && c >= 0 && c < cols) {
-                buffMap[r][c] = new BombDamageBuff(r, c);
-            }
-        }
-
-        int row4 = (int)(Math.random() * config.getRows());
-        int col4 = (int)(Math.random() * config.getCols());
-        int[][] healPositions = {{row4,col4}}; // กำหนดพิกัดที่ต้องการ
-        for (int[] p : healPositions) {
-            int r = p[0], c = p[1];
-            if (r >= 0 && r < rows && c >= 0 && c < cols) {
-                buffMap[r][c] = new HealBuff(r, c);
-            }
-        }
-
-        int row5 = (int)(Math.random() * config.getRows());
-        int col5 = (int)(Math.random() * config.getCols());
-        int[][] shieldPositions = {{row5,col5}}; // กำหนดพิกัดที่ต้องการ
-        for (int[] p : shieldPositions) {
-            int r = p[0], c = p[1];
-            if (r >= 0 && r < rows && c >= 0 && c < cols) {
-                buffMap[r][c] = new ShieldBuff(r, c);
-            }
-        }
-
     }
 
     // ── Movement ────────────────────────────────────────
