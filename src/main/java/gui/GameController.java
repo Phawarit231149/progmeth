@@ -64,6 +64,20 @@ public class GameController extends StackPane {
     private int maxBombs = 5;
     private int timeLeft = 300; // 5 นาที
 
+    // Badge counters for buff icons (right panel)
+    private int maxBombCount = 0;
+    private int bombRangeCount = 0;
+    private int bombDamageCount = 0;
+    private int shieldCount = 0;
+    private int healCount = 0;
+
+    // Badge labels (so we can update them)
+    private Label maxBombBadge;
+    private Label bombRangeBadge;
+    private Label bombDamageBadge;
+    private Label shieldBadge;
+    private Label healBadge;
+
     // UI refs
     private Label killLabel;
     private Label timerLabel;
@@ -206,6 +220,21 @@ public class GameController extends StackPane {
                             water.useSkill();
                             styleCell(playerRow, playerCol);
                             skillBtn.setDisable(true);
+
+                            // Show green ✓ on shield badge when skill activates shield
+                            shieldBadge.setText("✓");
+                            shieldBadge.setStyle(
+                                    "-fx-background-color: #43a047; " +
+                                            "-fx-text-fill: white; " +
+                                            "-fx-font-size: 11px; " +
+                                            "-fx-font-weight: bold; " +
+                                            "-fx-min-width: 18px; " +
+                                            "-fx-min-height: 18px; " +
+                                            "-fx-background-radius: 9; " +
+                                            "-fx-alignment: center; " +
+                                            "-fx-padding: 0 3 0 3;"
+                            );
+                            shieldBadge.setVisible(true);
                         }
                     }
 
@@ -880,11 +909,35 @@ public class GameController extends StackPane {
             if (currentBuff instanceof MaxBombBuff) {
                 maxBombs++;
                 bombsLeft++;
+                maxBombCount++;
                 updateBombLabel();
-            }else if (currentBuff instanceof HealBuff) {
-                if (hearts < 5) hearts++;
-                updateHearts();
-            }
+                updateBadge(maxBombBadge, maxBombCount);
+            } else if (currentBuff instanceof BombRangeBuff) {
+                bombRangeCount++;
+                updateBadge(bombRangeBadge, bombRangeCount);
+            } else if (currentBuff instanceof BombDamageBuff) {
+                bombDamageCount++;
+                updateBadge(bombDamageBadge, bombDamageCount);
+            } else if (currentBuff instanceof ShieldBuff) {
+            // Show green ✓ when shield is active
+            shieldBadge.setText("✓");
+            shieldBadge.setStyle(
+                    "-fx-background-color: #43a047; " +
+                            "-fx-text-fill: white; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-font-weight: bold; " +
+                            "-fx-min-width: 18px; " +
+                            "-fx-min-height: 18px; " +
+                            "-fx-background-radius: 9; " +
+                            "-fx-alignment: center; " +
+                            "-fx-padding: 0 3 0 3;"
+            );
+            shieldBadge.setVisible(true);
+        } else if (currentBuff instanceof HealBuff) {
+            if (hearts < 5) hearts++;
+            updateHearts();
+            // Show green ✓ briefly then hide (heal is instant)
+        }
 
             // 3. ลบบัฟออกจากแผนที่หลังจากกินแล้ว
             buffMap[playerRow][playerCol] = null;
@@ -1261,16 +1314,33 @@ public class GameController extends StackPane {
         rightCol.setAlignment(Pos.TOP_CENTER);
 
         // ใส่ Skills buff
-        ImageView s1 = createSkillImage("buffIcon/increaseMaximumBomb.png");
-        ImageView s2 = createSkillImage("buffIcon/increaseBombRange.png");
-        ImageView s3 = createSkillImage("buffIcon/increaseBombDamage.png");
-        ImageView s4 = createSkillImage("buffIcon/bubbleShield.png");
-        ImageView s5 = createSkillImage("buffIcon/heal.png");
+        maxBombBadge    = createBadgeLabel();
+        bombRangeBadge  = createBadgeLabel();
+        bombDamageBadge = createBadgeLabel();
+        shieldBadge     = createBadgeLabel();
+        healBadge       = createBadgeLabel();
 
-        Label s1Label = new Label('+' + Integer.toString(player.getDamage() - 1));
+        shieldBadge.setText("✗");
+        shieldBadge.setStyle(
+                "-fx-background-color: #e53935; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-font-size: 11px; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-min-width: 18px; " +
+                        "-fx-min-height: 18px; " +
+                        "-fx-background-radius: 9; " +
+                        "-fx-alignment: center; " +
+                        "-fx-padding: 0 3 0 3;"
+        );
+        shieldBadge.setVisible(true);
 
+        StackPane s1 = createSkillWithBadge("buffIcon/increaseMaximumBomb.png", maxBombBadge);
+        StackPane s2 = createSkillWithBadge("buffIcon/increaseBombRange.png",   bombRangeBadge);
+        StackPane s3 = createSkillWithBadge("buffIcon/increaseBombDamage.png",  bombDamageBadge);
+        StackPane s4 = createSkillWithBadge("buffIcon/bubbleShield.png",        shieldBadge);
+        StackPane s5 = createSkillWithBadge("buffIcon/heal.png",                healBadge);
 
-        rightCol.getChildren().addAll(s1,s2,s3,s4,s5);
+        rightCol.getChildren().addAll(s1, s2, s3, s4, s5);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -1447,6 +1517,19 @@ public class GameController extends StackPane {
                             if(!takeDamage){
                                 if (player.hasShield()){
                                     player.setShield(false);
+                                    shieldBadge.setText("✗");
+                                    shieldBadge.setStyle(
+                                            "-fx-background-color: #43a047; " +
+                                                    "-fx-text-fill: white; " +
+                                                    "-fx-font-size: 11px; " +
+                                                    "-fx-font-weight: bold; " +
+                                                    "-fx-min-width: 18px; " +
+                                                    "-fx-min-height: 18px; " +
+                                                    "-fx-background-radius: 9; " +
+                                                    "-fx-alignment: center; " +
+                                                    "-fx-padding: 0 3 0 3;"
+                                    );
+                                    shieldBadge.setVisible(true);
                                 }
                                 else if (! player.hasShield()){
                                     hearts -= player.getDamage();
@@ -1549,6 +1632,19 @@ public class GameController extends StackPane {
     private void damageFromEnemy(Enemy e) {
         if (player.hasShield()) {
             player.setShield(false);
+            shieldBadge.setText("✗");
+            shieldBadge.setStyle(
+                    "-fx-background-color: #e53935; " +
+                            "-fx-text-fill: white; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-font-weight: bold; " +
+                            "-fx-min-width: 18px; " +
+                            "-fx-min-height: 18px; " +
+                            "-fx-background-radius: 9; " +
+                            "-fx-alignment: center; " +
+                            "-fx-padding: 0 3 0 3;"
+            );
+            shieldBadge.setVisible(true);  // stays visible as ✗
             return;
         }
         int dmg = elementUtil.calculateEnemyDamage(e, player);
@@ -1556,6 +1652,7 @@ public class GameController extends StackPane {
         if (hearts < 0) hearts = 0;
         updateHearts();
     }
+
     private void checkPlayerEnemyCollision() {
         // ใช้ enemyOccupiesTile() — รองรับ Hard 2×2 ด้วย
         // ทำดาเมจครั้งเดียวต่อ tick (กันโดน Hard ตี 4 ครั้งต่อรอบเพราะกินพื้นที่ 4 ช่อง)
@@ -1613,6 +1710,40 @@ public class GameController extends StackPane {
                 skillBtn.setOpacity(1.0);
             }
         }
+    }
+
+    /** Creates the red badge label (hidden by default) */
+    private Label createBadgeLabel() {
+        Label badge = new Label("0");
+        badge.setStyle(
+                "-fx-background-color: #e53935; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-font-size: 11px; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-min-width: 18px; " +
+                        "-fx-min-height: 18px; " +
+                        "-fx-background-radius: 9; " +
+                        "-fx-alignment: center; " +
+                        "-fx-padding: 0 3 0 3;"
+        );
+        badge.setVisible(false);  // hide when count is 0
+        return badge;
+    }
+
+    /** Wraps a skill ImageView in a StackPane with a badge in top-right corner */
+    private StackPane createSkillWithBadge(String skillName, Label badge) {
+        ImageView icon = createSkillImage(skillName);
+        StackPane stack = new StackPane(icon, badge);
+        stack.setPrefSize(54, 54);
+        StackPane.setAlignment(badge, javafx.geometry.Pos.TOP_RIGHT);
+        // Shift the badge slightly outside the icon corner
+        StackPane.setMargin(badge, new javafx.geometry.Insets(-4, -4, 0, 0));
+        return stack;
+    }
+
+    private void updateBadge(Label badge, int count) {
+        badge.setText(String.valueOf(count));
+        badge.setVisible(count > 0);
     }
 
     public void takeDamage() {
