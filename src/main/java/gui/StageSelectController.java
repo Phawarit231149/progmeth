@@ -160,7 +160,7 @@ public class StageSelectController extends BorderPane {
 
     private Button createSelectCharacterButton(String name,String imageName) {
         Button btn = new Button(name);
-        int btnSize = 70;
+        double btnSize = 70;
         btn.setPrefSize(btnSize, btnSize);
         btn.setMinSize(btnSize, btnSize);
         btn.setMaxSize(btnSize, btnSize);
@@ -185,6 +185,7 @@ public class StageSelectController extends BorderPane {
         javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
         imageView.setClip(clip);
 
+        /*
         // 4. สร้างกรอบ StackPane
         StackPane container = new StackPane(imageView);
         container.setPrefSize(btnSize, btnSize);
@@ -198,8 +199,9 @@ public class StageSelectController extends BorderPane {
                         "-fx-border-color: #90a4ae; " +
                         "-fx-border-width: 3;"
         );
+         */
 
-        btn.setGraphic(container);
+        btn.setGraphic(imageView);
 
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 

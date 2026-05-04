@@ -534,11 +534,11 @@ public class GameController extends StackPane {
         rightCol.setAlignment(Pos.TOP_CENTER);
 
         // ใส่ Skills buff
-        StackPane s1 = createSkillImage("buffIcon/increaseMaximumBomb.png");
-        StackPane s2 = createSkillImage("buffIcon/increaseBombRange.png");
-        StackPane s3 = createSkillImage("buffIcon/increaseBombDamage.png");
-        StackPane s4 = createSkillImage("buffIcon/bubbleShield.png");
-        StackPane s5 = createSkillImage("buffIcon/heal.png");
+        ImageView s1 = createSkillImage("buffIcon/increaseMaximumBomb.png");
+        ImageView s2 = createSkillImage("buffIcon/increaseBombRange.png");
+        ImageView s3 = createSkillImage("buffIcon/increaseBombDamage.png");
+        ImageView s4 = createSkillImage("buffIcon/bubbleShield.png");
+        ImageView s5 = createSkillImage("buffIcon/heal.png");
 
         rightCol.getChildren().addAll(s1,s2,s3,s4,s5);
 
@@ -589,7 +589,7 @@ public class GameController extends StackPane {
         return bombContainer;
     }
 
-    public StackPane createSkillImage(String skillName) {
+    public ImageView createSkillImage(String skillName) {
         // 1. โหลดรูปภาพ
         Image img = new Image(getClass().getResourceAsStream("/images/" + skillName));
         ImageView skill = new ImageView(img);
@@ -602,11 +602,13 @@ public class GameController extends StackPane {
         // ⭐️ สำคัญ: เปลี่ยนเป็น false เพื่อให้ภาพยืด/หดจนเต็มวงกลมพอดี
         skill.setPreserveRatio(false);
 
+
         // 3. ตัดรูปให้เป็นวงกลม (เช็คจุดศูนย์กลางให้แม่น)
         double radius = size / 2;
         javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
         skill.setClip(clip);
 
+        /*
         // 4. สร้างกรอบ StackPane
         StackPane container = new StackPane(skill);
         container.setPrefSize(size, size);
@@ -620,8 +622,9 @@ public class GameController extends StackPane {
                         "-fx-border-color: #90a4ae; " +
                         "-fx-border-width: 3;"
         );
+         */
 
-        return container;
+        return skill;
     }
 
     // ── BOTTOM HEARTS ───────────────────────────────────
