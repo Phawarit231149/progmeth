@@ -1256,7 +1256,7 @@ public class GameController extends StackPane {
         Label skillLabel = new Label("");
         if(name.equals("Patrick")){skillLabel.setText("Teleport [K]");}
         if(name.equals("Squidward")){skillLabel.setText("Generate shield [K]");}
-        if(name.equals("SpongeBob")){skillLabel.setText("Freeze all enemies [K]");}
+        if(name.equals("SpongeBob")){skillLabel.setText("Freeze all\nenemies [K]");}
         skillLabel.setFont(Font.font(15));
 
         this.explodeBtn = new Button("Bomb");
