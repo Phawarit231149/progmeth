@@ -13,6 +13,7 @@ public class WaterCharacter extends Character implements Skillable {
     // ── Constructor ───────────────────────────
     public WaterCharacter(int health, int damage, int damageBomb, int bombRange, int maxBombs) {
         super(health, damage, damageBomb, bombRange, maxBombs, Element.WATER);
+        setCOOLDOWN_SECONDS(90);
     }
 
     // ── Skillable methods ─────────────────────
@@ -26,12 +27,18 @@ public class WaterCharacter extends Character implements Skillable {
     @Override
     public boolean isSkillReady() {
         long now = System.currentTimeMillis();
-        return (now - lastSkillUseTime) >= (COOLDOWN_SECONDS * 1000L);
+        // Simplified the parentheses to avoid syntax errors
+        return (now - lastSkillUseTime) >= (getCooldown() * 1000L);
     }
 
     @Override
     public int getCooldown() {
         return COOLDOWN_SECONDS;
+    }
+
+    @Override
+    public long getLastSkillUseTime() {
+        return lastSkillUseTime;
     }
 
     // ── Description ───────────────────────────

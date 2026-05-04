@@ -20,26 +20,41 @@ public class FireCharacter extends Character implements Skillable {
     }
 
     // ── Skillable methods ─────────────────────
+    // Inside FireCharacter class
+
     @Override
     public void useSkill() {
-        if (!isSkillReady()) return;          // ยังติด cooldown → ใช้ไม่ได้
-        teleportArmed = true;                 // เปิดโหมดให้ผู้เล่นเลือกช่อง teleport
+        if (!isSkillReady()) return;
+        this.teleportArmed = true;
+        System.out.println("Teleport Armed! Click a tile within 5 seconds.");
+    }
+
+    // Add this method to cancel if the player is too slow
+    public void cancelTeleport() {
+        this.teleportArmed = false;
     }
 
     @Override
     public boolean isSkillReady() {
         long now = System.currentTimeMillis();
-        return (now - lastSkillUseTime) >= (COOLDOWN_SECONDS * 1000L);
+        // Simplified the parentheses to avoid syntax errors
+        return (now - lastSkillUseTime) >= (getCooldown() * 1000L);
     }
 
     @Override
     public int getCooldown() {
-        return COOLDOWN_SECONDS;
+        return COOLDOWN_SECONDS; // Directly return the value or use a variable
     }
 
     // ── ตรวจสอบว่า skill teleport พร้อมเลือกช่องไหม ──
+    @Override
     public boolean isTeleportArmed() {
         return teleportArmed;
+    }
+
+    @Override
+    public long getLastSkillUseTime() {
+        return lastSkillUseTime;
     }
 
     /**
@@ -71,4 +86,5 @@ public class FireCharacter extends Character implements Skillable {
         return "Fire Character: Teleport to a normal tile " +
                 "(not rock, seaweed, or enemy position).";
     }
+
 }

@@ -7,7 +7,7 @@ public class ElectricCharacter extends Character implements Skillable {
     // ── Skill settings ────────────────────────
     // หยุดศัตรูเป็นเวลา 2 วินาที (stun)
     private static final long STUN_DURATION_MS = 2000L;   // 2 วินาที
-    private static final int  COOLDOWN_SECONDS = 10;      // cooldown 10 วินาที
+    private static final int  COOLDOWN_SECONDS = 100;      // cooldown 10 วินาที
 
     private long lastSkillUseTime = 0L;
     private boolean stunActive    = false;
@@ -47,6 +47,12 @@ public class ElectricCharacter extends Character implements Skillable {
         }
         return stunActive;
     }
+
+    @Override
+    public long getLastSkillUseTime() {
+        return lastSkillUseTime;
+    }
+
     // ── Description ───────────────────────────
     @Override
     public String getDescription() {

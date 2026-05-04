@@ -2,7 +2,9 @@ package game.character;
 
 import game.Element;
 
-public abstract class Character {
+import java.util.Timer;
+
+public abstract class Character implements Skillable {
 
     // Stats
     protected int health;
@@ -12,6 +14,8 @@ public abstract class Character {
     protected int bombRange;
     protected int maxBombs;
     protected boolean haveShield;
+    private int COOLDOWN_SECONDS;
+    private long lastSkillUseTime = 0L;
 
     // Position
     protected int posX;
@@ -68,6 +72,19 @@ public abstract class Character {
                 (element == Element.ELECTRIC && other == Element.WATER);
     }
 
+    public int getRemainingCoolDown(){
+        long now = System.currentTimeMillis();
+        long timeElapsed = now - lastSkillUseTime;
+        long cooldownMs = getCooldown() * 1000L;
+
+        if (timeElapsed >= cooldownMs) return 0;
+
+        // Calculate remaining seconds
+        return (int) ((cooldownMs - timeElapsed) / 1000);
+    }
+
+    public void useSkill(){}
+    public boolean isTeleportArmed(){return false;}
     // ── รับดาเมจจาก element ───────────────────
     // ใช้ตอน enemy โจมตีเรา (enemy ไม่มี element)
     public void takeDamageFromEnemy(int baseDamage) {
@@ -90,6 +107,10 @@ public abstract class Character {
     public void setPos(int x, int y) { posX = x; posY = y; }
     public void setShield(boolean s) { haveShield = s; }
     public boolean isAlive()         { return health > 0; }
+
+    public void setCOOLDOWN_SECONDS(int COOLDOWN_SECONDS) {
+        this.COOLDOWN_SECONDS = COOLDOWN_SECONDS;
+    }
 
     public void setHealth(int health) {
         this.health = health;

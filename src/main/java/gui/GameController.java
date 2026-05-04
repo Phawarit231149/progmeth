@@ -2,6 +2,7 @@ package gui;
 
 import game.Element;
 import game.buff.*;
+import game.character.*;
 import game.character.Character;
 import game.character.ElectricCharacter;
 import game.character.FireCharacter;
@@ -36,6 +37,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import model.StageData;
+
+import java.util.Timer;
 
 public class GameController extends StackPane {
 
@@ -74,6 +77,7 @@ public class GameController extends StackPane {
     // Button
     private Button explodeBtn;
     private Button plantBombBtn;
+    private Button skillBtn;
     private Button infoBtn;
 
     //Button Style
@@ -153,6 +157,46 @@ public class GameController extends StackPane {
                     plantBombBtn.setStyle(pressedStyle);
                     plantBombBtn.fire();
                     break;
+                case K: // Example: Press K to use skill
+                    if(player.isSkillReady()){
+                        skillBtn.setStyle(pressedStyle);
+                    }
+                    if (player instanceof FireCharacter fire) {
+                        if (fire.isSkillReady()) {
+                            fire.useSkill();
+
+                            String teleporting = "-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;";
+                            for(int i = 0; i < config.getRows(); i++){
+                                for(int j = 0; j < config.getCols(); j++){
+                                    cells[i][j].setStyle(teleporting);
+                                }
+                            }
+
+                            // Start a 5-second countdown to disarm if no click happens
+                            Timeline disarmTimer = new Timeline(new KeyFrame(Duration.seconds(5), e -> {
+                                if (fire.isTeleportArmed()) {
+                                    fire.cancelTeleport();
+                                    System.out.println("Teleport expired!");
+
+                                    String baseStyle = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
+                                    for(int i = 0; i < config.getRows(); i++){
+                                        for(int j = 0; j < config.getCols(); j++){
+                                            cells[i][j].setStyle(baseStyle);
+                                        }
+                                    }
+                                }
+                            }));
+                            disarmTimer.play();
+                        }
+                    }
+                    if(player instanceof WaterCharacter water){
+                        if(water.isSkillReady()){
+                            water.useSkill();
+                            styleCell(playerRow, playerCol);
+                            skillBtn.setDisable(true);
+                        }
+                    }
+                    break;
                 case ESCAPE:
                     showPauseMenu();
                     break;
@@ -165,6 +209,7 @@ public class GameController extends StackPane {
             switch (event.getCode()) {
                 case O: explodeBtn.setStyle(normalStyle); break;
                 case P: plantBombBtn.setStyle(normalStyle); break;
+                case K: skillBtn.setStyle(normalStyle); break;
                 default: break;
             }
         });
@@ -786,29 +831,24 @@ public class GameController extends StackPane {
             int level = config.getLevel();
             boolean shieldDisabled = (level == 3 || level == 4);   // Stage 3-4 ห้ามเก็บ shield
 
-            // ถ้าเป็น ShieldBuff ใน stage 3 หรือ 4 → ไม่ apply, ไม่ลบ (อยู่บน map ต่อไปแบบเก็บไม่ได้)
-            if (currentBuff instanceof ShieldBuff && shieldDisabled) {
-                // skip — เห็นไอคอนแต่กินไม่ได้
-            } else {
-                // 1. ส่งผลกับตัวละคร
-                currentBuff.apply(player);
+            // 1. ส่งผลกับตัวละคร
+            currentBuff.apply(player);
 
-                // 2. ถ้าเป็นบัฟที่ส่งผลต่อจำนวนระเบิดใน UI (ต้องอัปเดต Label ด้วย)
-                if (currentBuff instanceof MaxBombBuff) {
-                    maxBombs++;
-                    bombsLeft++;
-                    updateBombLabel();
-                } else if (currentBuff instanceof HealBuff) {
-                    if (hearts < 5) hearts++;
-                    updateHearts();
-                }
-
-                // 3. ลบบัฟออกจากแผนที่หลังจากกินแล้ว
-                buffMap[playerRow][playerCol] = null;
-
-                // 4. (Optional) เล่นเสียงเก็บไอเทม
-                // SoundManager.playSFX(pickupSfx);
+            // 2. ถ้าเป็นบัฟที่ส่งผลต่อจำนวนระเบิดใน UI (ต้องอัปเดต Label ด้วย)
+            if (currentBuff instanceof MaxBombBuff) {
+                maxBombs++;
+                bombsLeft++;
+                updateBombLabel();
+            }else if (currentBuff instanceof HealBuff) {
+                if (hearts < 5) hearts++;
+                updateHearts();
             }
+
+            // 3. ลบบัฟออกจากแผนที่หลังจากกินแล้ว
+            buffMap[playerRow][playerCol] = null;
+
+            // 4. (Optional) เล่นเสียงเก็บไอเทม
+            // SoundManager.playSFX(pickupSfx);
         }
         checkPlayerEnemyCollision();
         renderGrid();
@@ -1108,7 +1148,38 @@ public class GameController extends StackPane {
                 cell.setMinSize(cellSize, cellSize);
                 cell.setMaxSize(cellSize, cellSize);
                 cell.setPrefSize(cellSize, cellSize);
-                cell.setFocusTraversable(false);  // ไม่ให้ปุ่มดูดโฟกัสจาก WASD
+                cell.setFocusTraversable(false);
+
+                // --- ADDED: Click Listener for Teleportation ---
+                cell.setOnAction(e -> {
+                    // 1. Check if the player is a FireCharacter and skill is active
+                    if (player instanceof FireCharacter fire && fire.isTeleportArmed()) {
+
+                        // 2. Identify what is at the target location
+                        Tile targetTile = map[row][col];
+
+                        // Check if there is an active seaweed block at the target
+                        boolean seaweedExists = (seaweeds[row][col] != null && !seaweeds[row][col].isDestroyed());
+                        if (seaweedExists) {
+                            targetTile = seaweeds[row][col];
+                        }
+
+                        // 3. Attempt the teleport via the Character model
+                        // We pass 'false' for hasEnemy here unless you have an enemy array to check
+                        if (fire.teleportTo(col, row, targetTile, false)) {
+                            // 4. Update the Controller's logic to match the Model
+                            playerRow = row;
+                            playerCol = col;
+                            renderGrid(); // Redraw immediately
+                            System.out.println("Teleported successfully!");
+                        } else {
+                            System.out.println("Cannot teleport to " + row + "," + col + " (Blocked!)");
+                        }
+
+                    }
+                });
+                // ------------------------------------------------
+
                 cells[r][c] = cell;
                 grid.add(cell, c, r);
             }
@@ -1149,6 +1220,9 @@ public class GameController extends StackPane {
         ImageView s4 = createSkillImage("buffIcon/bubbleShield.png");
         ImageView s5 = createSkillImage("buffIcon/heal.png");
 
+        Label s1Label = new Label('+' + Integer.toString(player.getDamage() - 1));
+
+
         rightCol.getChildren().addAll(s1,s2,s3,s4,s5);
 
         Region spacer = new Region();
@@ -1173,6 +1247,18 @@ public class GameController extends StackPane {
         VBox bombContainer = new VBox(10);
         bombContainer.setAlignment(Pos.BOTTOM_CENTER);
 
+        this.skillBtn = new Button("Skill");
+        skillBtn.setPrefSize(80,80);
+        skillBtn.setFocusTraversable(false);
+        skillBtn.setStyle(normalStyle);
+        skillBtn.setOnAction(e -> player.useSkill());
+
+        Label skillLabel = new Label("");
+        if(name.equals("Patrick")){skillLabel.setText("Teleport [K]");}
+        if(name.equals("Squidward")){skillLabel.setText("Generate shield [K]");}
+        if(name.equals("SpongeBob")){skillLabel.setText("Freeze all enemies [K]");}
+        skillLabel.setFont(Font.font(15));
+
         this.explodeBtn = new Button("Bomb");
         explodeBtn.setPrefSize(80, 80);
         explodeBtn.setFocusTraversable(false);
@@ -1194,7 +1280,7 @@ public class GameController extends StackPane {
         Label plantKey = new Label("[P]");
         plantKey.setFont(Font.font(15));
 
-        bombContainer.getChildren().addAll(explodeBtn, explodeKey, plantBombBtn, bombLabel, plantKey);
+        bombContainer.getChildren().addAll(skillBtn,skillLabel,explodeBtn, explodeKey, plantBombBtn, bombLabel, plantKey);
         return bombContainer;
     }
 
@@ -1252,6 +1338,7 @@ public class GameController extends StackPane {
             timeLeft--;
             int m = timeLeft / 60, s = timeLeft % 60;
             timerLabel.setText(m + ":" + (s < 10 ? "0" : "") + s);
+
             if (timeLeft > 0 && kills > config.getGoal()) {
                 if (config.getLevel() == 5) setGameStatus(Status.CLEAR);
                 else                        setGameStatus(Status.WIN);
@@ -1259,6 +1346,8 @@ public class GameController extends StackPane {
             }
             if (timeLeft <= 30)
                 timerLabel.setStyle(timerLabel.getStyle() + "-fx-text-fill: #e53935;");
+
+            updateSkillButtonUI();
         }));
         timer.setCycleCount(Timeline.INDEFINITE);
         resumeAll();
@@ -1451,6 +1540,25 @@ public class GameController extends StackPane {
 
     private void updateBombLabel() {
         bombLabel.setText(bombsLeft + " / " + maxBombs);
+    }
+
+    private void updateSkillButtonUI() {
+        if (player instanceof Skillable s) {
+            if (!s.isSkillReady()) {
+                // Calculate remaining time
+                long now = System.currentTimeMillis();
+                long nextReady = s.getLastSkillUseTime() + (s.getCooldown() * 1000L);
+                long remaining = Math.max(0, (nextReady - now) / 1000);
+
+                skillBtn.setText(remaining + "s");
+                skillBtn.setDisable(true); // Prevent clicking during cooldown
+                skillBtn.setOpacity(0.7);   // Visual feedback for disabled
+            } else {
+                skillBtn.setText("Skill");
+                skillBtn.setDisable(false);
+                skillBtn.setOpacity(1.0);
+            }
+        }
     }
 
     public void takeDamage() {
