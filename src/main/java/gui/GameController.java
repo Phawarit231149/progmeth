@@ -54,11 +54,12 @@ public class GameController extends StackPane {
     private Seaweed[][] seaweeds;  // seaweed objects (วางทับ tile)
     private boolean[][] hasBomb;
     private Buff[][] buffMap;
+    private boolean stopCharacter = false;
 
     // game state
     private int hearts = 5;
     private int kills = 0;
-    private final int goal = 30;
+    //private final int goal = 30;
     private int bombsLeft = 5;
     private int maxBombs = 5;
     private int timeLeft = 300; // 5 นาที
@@ -84,6 +85,8 @@ public class GameController extends StackPane {
     private final String normalStyle = "-fx-background-radius: 40;";
     private final String pressedStyle = "-fx-background-radius: 40; -fx-border-color: red; -fx-border-width: 3px; -fx-border-radius: 40;";
 
+    //Tile Style
+    private String baseStyle = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
     // ── Enemies ──────────────────────────────
     private List<Enemy> enemies = new ArrayList<>();
     private Timeline enemyTimer;
@@ -95,6 +98,7 @@ public class GameController extends StackPane {
     // dr/dc สำหรับ 4 ทิศ: 0=up, 1=down, 2=left, 3=right
     private static final int[] DR = {-1, 1, 0, 0};
     private static final int[] DC = { 0, 0,-1, 1};
+    private boolean stopEnemy = false;
 
     // ── Images (โหลดจาก resources/) ────────────
     private Image spongebobImg;
@@ -142,10 +146,15 @@ public class GameController extends StackPane {
 
         this.setOnKeyPressed(event -> {
             switch (event.getCode()) {
-                case W: tryMove(-1, 0); break;
-                case S: tryMove( 1, 0); break;
-                case A: tryMove( 0,-1); break;
-                case D: tryMove( 0, 1); break;
+                case W:
+                    if(!stopCharacter){tryMove(-1, 0); break;}
+
+                case S:
+                    if(!stopCharacter){tryMove(1, 0); break;}
+                case A:
+                    if(!stopCharacter){tryMove(0, -1); break;}
+                case D:
+                    if(!stopCharacter){tryMove(0, 1); break;}
                 case O:
                     explodeBtn.setStyle(pressedStyle);
                     explodeBtn.fire();
@@ -163,37 +172,68 @@ public class GameController extends StackPane {
                     }
                     if (player instanceof FireCharacter fire) {
                         if (fire.isSkillReady()) {
+                            this.stopEnemy = true;
+                            this.stopCharacter = true;
+                            timer.stop();
                             fire.useSkill();
-
-                            String teleporting = "-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;";
+                            setBaseStyle("-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;");
                             for(int i = 0; i < config.getRows(); i++){
                                 for(int j = 0; j < config.getCols(); j++){
-                                    cells[i][j].setStyle(teleporting);
+                                    cells[i][j].setStyle(baseStyle);
                                 }
                             }
-
                             // Start a 5-second countdown to disarm if no click happens
-                            Timeline disarmTimer = new Timeline(new KeyFrame(Duration.seconds(5), e -> {
+                            Timeline disarmTimer = new Timeline(new KeyFrame(Duration.seconds(3), e -> {
                                 if (fire.isTeleportArmed()) {
                                     fire.cancelTeleport();
-                                    System.out.println("Teleport expired!");
-
-                                    String baseStyle = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
+                                    setBaseStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
                                     for(int i = 0; i < config.getRows(); i++){
                                         for(int j = 0; j < config.getCols(); j++){
                                             cells[i][j].setStyle(baseStyle);
                                         }
                                     }
+                                    timer.play();
+                                    this.stopEnemy = false;
+                                    this.stopCharacter = false;
                                 }
                             }));
                             disarmTimer.play();
                         }
                     }
+
                     if(player instanceof WaterCharacter water){
                         if(water.isSkillReady()){
                             water.useSkill();
                             styleCell(playerRow, playerCol);
                             skillBtn.setDisable(true);
+                        }
+                    }
+
+                    if(player instanceof ElectricCharacter electric){
+                        if(electric.isSkillReady()){
+                            this.stopEnemy = true;
+
+                            setBaseStyle("-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;");
+                            for(int i = 0; i < config.getRows(); i++){
+                                for(int j = 0; j < config.getCols(); j++){
+                                    cells[i][j].setStyle(baseStyle);
+                                }
+                            }
+
+                            Timeline stunTimer = new Timeline(new KeyFrame(
+                                    Duration.millis(ElectricCharacter.getStunDurationMs()),
+                                    e -> {
+                                        this.stopEnemy = false;
+                                        setBaseStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
+                                        for(int i = 0; i < config.getRows(); i++){
+                                            for(int j = 0; j < config.getCols(); j++){
+                                                cells[i][j].setStyle(baseStyle);
+                                            }
+                                        }
+                                    }
+                            ));
+                            stunTimer.play();
+                            electric.useSkill();
                         }
                     }
                     break;
@@ -695,12 +735,14 @@ public class GameController extends StackPane {
     //   Easy / Medium → เดินสุ่ม (logic เดิม: ตรงไปก่อน → เลี้ยว → ถอยหลัง)
     //   Hard         → ไล่ตาม player (เลือกทิศที่ใกล้ player ที่สุด)
     private void moveEnemy(Enemy e) {
-        if (e.getLevel() == Level.HARD) {
-            moveHardFollowPlayer(e);
-        } else {
-            moveRandom(e);
+        if(!stopEnemy){
+            if (e.getLevel() == Level.HARD) {
+                moveHardFollowPlayer(e);
+            } else {
+                moveRandom(e);
+            }
+            // ดาเมจ player ทำใน checkPlayerEnemyCollision() ที่ enemyTimer เรียกอยู่แล้ว
         }
-        // ดาเมจ player ทำใน checkPlayerEnemyCollision() ที่ enemyTimer เรียกอยู่แล้ว
     }
 
     private void moveRandom(Enemy e) {
@@ -869,7 +911,6 @@ public class GameController extends StackPane {
         cell.setGraphic(null);
 
         // พื้นหลังพื้นปกติทุกครั้ง
-        String baseStyle = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
 
         if (r == playerRow && c == playerCol) {
             Image playerImg = null;
@@ -1171,10 +1212,16 @@ public class GameController extends StackPane {
                             playerRow = row;
                             playerCol = col;
                             renderGrid(); // Redraw immediately
-                            System.out.println("Teleported successfully!");
-                        } else {
-                            System.out.println("Cannot teleport to " + row + "," + col + " (Blocked!)");
+                            setBaseStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
+                            for (int i = 0; i < config.getRows(); i++) {
+                                for (int j = 0; j < config.getCols(); j++) {
+                                    cells[i][j].setStyle(baseStyle);
+                                }
+                            }
                         }
+                        this.stopEnemy = false;
+                        this.stopCharacter = false;
+                        timer.play();
 
                     }
                 });
@@ -1254,8 +1301,8 @@ public class GameController extends StackPane {
         skillBtn.setOnAction(e -> player.useSkill());
 
         Label skillLabel = new Label("");
-        if(name.equals("Patrick")){skillLabel.setText("Teleport [K]");}
-        if(name.equals("Squidward")){skillLabel.setText("Generate shield [K]");}
+        if(name.equals("Patrick")){skillLabel.setText("Teleport\n[K]");}
+        if(name.equals("Squidward")){skillLabel.setText("Generate\nshield [K]");}
         if(name.equals("SpongeBob")){skillLabel.setText("Freeze all\nenemies [K]");}
         skillLabel.setFont(Font.font(15));
 
@@ -1321,9 +1368,10 @@ public class GameController extends StackPane {
             h.setStyle("-fx-font-size: 26px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
             heartsBox.getChildren().add(h);
 
-            if (hearts == 0){
+            if (hearts <= 0){
                 setGameStatus(Status.LOSE);
-                gameOver();}
+                gameOver();
+            }
         }
     }
 
@@ -1401,7 +1449,7 @@ public class GameController extends StackPane {
                                     player.setShield(false);
                                 }
                                 else if (! player.hasShield()){
-                                    hearts -= player.getDamageBomb();
+                                    hearts -= player.getDamage();
                                     //player.takeDamage(player.getDamageBomb());
                                     updateHearts();
                                 }
@@ -1478,6 +1526,12 @@ public class GameController extends StackPane {
             if (en.getHealth() <= 0) {
                 it.remove();
                 kills++;
+                if(kills >= config.getGoal()){
+                    if(config.getLevel() == 5){setGameStatus(Status.CLEAR);}
+                    else{setGameStatus(Status.WIN);}
+                    gameOver();
+                    return;
+                }
             }
         }
         // อัปเดตตัวเลขที่ top bar
@@ -1586,6 +1640,12 @@ public class GameController extends StackPane {
     }
 
     public void setHearts(int hearts) {
-        this.hearts = hearts;
+        if (hearts < 0) {this.hearts = 0;}
+        if(hearts > 5){ this.hearts = 5;}
+        else{this.hearts = hearts;}
+    }
+
+    public void setBaseStyle(String baseStyle) {
+        this.baseStyle = baseStyle;
     }
 }

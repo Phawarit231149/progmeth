@@ -52,6 +52,8 @@ public class ElectricCharacter extends Character implements Skillable {
     public long getLastSkillUseTime() {
         return lastSkillUseTime;
     }
+    public static long getStunDurationMs() {return STUN_DURATION_MS;}
+
 
     // ── Description ───────────────────────────
     @Override

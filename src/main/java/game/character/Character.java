@@ -10,7 +10,7 @@ public abstract class Character implements Skillable {
     protected int health;
     protected int maxHealth;
     protected int damage;
-    protected int damageBomb;
+    //protected int damageBomb;
     protected int bombRange;
     protected int maxBombs;
     protected boolean haveShield;
@@ -29,7 +29,7 @@ public abstract class Character implements Skillable {
         this.health     = health;
         this.maxHealth  = health;
         this.damage     = damage;
-        this.damageBomb = damageBomb;
+        //this.damageBomb = damageBomb;
         this.bombRange  = bombRange;
         this.maxBombs   = maxBombs;
         this.haveShield = false;
@@ -95,7 +95,7 @@ public abstract class Character implements Skillable {
     public int getHealth()      { return health; }
     public int getMaxHealth()   { return maxHealth; }
     public int getDamage()      { return damage; }
-    public int getDamageBomb()  { return damageBomb; }
+    //public int getDamageBomb()  { return damageBomb; }
     public int getBombRange()   { return bombRange; }
     public int getMaxBombs()    { return maxBombs; }
     public boolean hasShield()  { return haveShield; }
@@ -124,9 +124,11 @@ public abstract class Character implements Skillable {
         this.damage = damage;
     }
 
+    /*
     public void setDamageBomb(int damageBomb) {
         this.damageBomb = damageBomb;
     }
+     */
 
     public void setBombRange(int bombRange) {
         this.bombRange = bombRange;
@@ -166,7 +168,7 @@ public abstract class Character implements Skillable {
 
     // เพิ่ม damage ของระเบิด
     public void increaseBombDamage(int amount) {
-        damageBomb += amount;
+        damage += amount;
     }
 
     // เพิ่มจำนวนระเบิดที่ถือได้สูงสุด

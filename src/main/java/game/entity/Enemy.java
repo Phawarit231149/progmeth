@@ -16,6 +16,7 @@ public abstract class Enemy {
     private Level level;
     private int currentDir;   // 0 = up, 1 = down, 2 = left, 3 = right
     protected Random random = new Random();
+    private boolean stopEnemy = false;
 
     public Enemy(int size, int posX,int posY,Element element,boolean isShielded){
         setSize(size);
@@ -64,6 +65,7 @@ public abstract class Enemy {
     public Element getElement() {return element;}
     public boolean isShielded() {return isShielded;}
     public Level getLevel() {return level;}
+    public boolean isStopEnemy() {return stopEnemy;}
 
     public void setHealth(int health) {this.health = health;}
     public void setDamage(int damage) {this.damage = damage;}
@@ -73,4 +75,5 @@ public abstract class Enemy {
     public void setElement(Element element) {this.element = element;}
     public void setShielded(boolean shielded) {isShielded = shielded;}
     public void setLevel(Level level) {this.level = level;}
+    public void setStopEnemy(boolean stopEnemy) {this.stopEnemy = stopEnemy;}
 }
