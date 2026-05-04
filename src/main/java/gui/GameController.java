@@ -602,27 +602,10 @@ public class GameController extends StackPane {
         // ⭐️ สำคัญ: เปลี่ยนเป็น false เพื่อให้ภาพยืด/หดจนเต็มวงกลมพอดี
         skill.setPreserveRatio(false);
 
-
         // 3. ตัดรูปให้เป็นวงกลม (เช็คจุดศูนย์กลางให้แม่น)
         double radius = size / 2;
         javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
         skill.setClip(clip);
-
-        /*
-        // 4. สร้างกรอบ StackPane
-        StackPane container = new StackPane(skill);
-        container.setPrefSize(size, size);
-        container.setMinSize(size, size); // ป้องกัน Layout อื่นมาบีบให้เล็กลง
-        container.setMaxSize(size, size);
-
-        // ⭐️ ปรับสไตล์ขอบ
-        container.setStyle(
-                "-fx-background-radius: " + radius + "; " +
-                        "-fx-border-radius: " + radius + "; " +
-                        "-fx-border-color: #90a4ae; " +
-                        "-fx-border-width: 3;"
-        );
-         */
 
         return skill;
     }

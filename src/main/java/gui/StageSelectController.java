@@ -173,7 +173,6 @@ public class StageSelectController extends BorderPane {
         Image image = new Image(getClass().getResourceAsStream("/images/" + imageName));
         ImageView imageView = new ImageView(image);
 
-        //double size = 54.0;
         imageView.setFitWidth(btnSize);
         imageView.setFitHeight(btnSize);
 
@@ -184,22 +183,6 @@ public class StageSelectController extends BorderPane {
         double radius = btnSize / 2;
         javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
         imageView.setClip(clip);
-
-        /*
-        // 4. สร้างกรอบ StackPane
-        StackPane container = new StackPane(imageView);
-        container.setPrefSize(btnSize, btnSize);
-        container.setMinSize(btnSize, btnSize); // ป้องกัน Layout อื่นมาบีบให้เล็กลง
-        container.setMaxSize(btnSize, btnSize);
-
-        // ⭐️ ปรับสไตล์ขอบ
-        container.setStyle(
-                "-fx-background-radius: " + radius + "; " +
-                        "-fx-border-radius: " + radius + "; " +
-                        "-fx-border-color: #90a4ae; " +
-                        "-fx-border-width: 3;"
-        );
-         */
 
         btn.setGraphic(imageView);
 
