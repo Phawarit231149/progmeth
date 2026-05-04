@@ -6,10 +6,20 @@ import game.character.Character;
 import game.character.ElectricCharacter;
 import game.character.FireCharacter;
 import game.character.WaterCharacter;
+import game.entity.EasyEnemy;
+import game.entity.Enemy;
+import game.entity.HardEnemy;
+import game.entity.Level;
+import game.entity.MediumEnemy;
 import game.map.Rock;
 import game.map.Seaweed;
 import game.map.Tile;
+import game.util.ElementUtil;
 import game.util.SoundManager;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
@@ -70,10 +80,29 @@ public class GameController extends StackPane {
     private final String normalStyle = "-fx-background-radius: 40;";
     private final String pressedStyle = "-fx-background-radius: 40; -fx-border-color: red; -fx-border-width: 3px; -fx-border-radius: 40;";
 
+    // ── Enemies ──────────────────────────────
+    private List<Enemy> enemies = new ArrayList<>();
+    private Timeline enemyTimer;
+    private Timeline spawnTimer;            // ใช้สำหรับ spawn enemy ทีละตัวตามช่วงเวลา
+    private int totalSpawned = 0;           // นับ enemy ทั้งหมดที่เคย spawn ใน stage นี้
+    private int stagePhase   = 1;           // ใช้กับ Stage 5 (1 = medium phase, 2 = hard phase)
+    private boolean phase2Started = false;  // กัน trigger ซ้ำ
+    private final ElementUtil elementUtil = new ElementUtil();   // ใช้คำนวณดาเมจตามธาตุ
+    // dr/dc สำหรับ 4 ทิศ: 0=up, 1=down, 2=left, 3=right
+    private static final int[] DR = {-1, 1, 0, 0};
+    private static final int[] DC = { 0, 0,-1, 1};
+
     // ── Images (โหลดจาก resources/) ────────────
     private Image spongebobImg;
     private Image patrickImg;
     private Image squidWardImg;
+    // enemy images
+    private Image npcImg;             // Easy enemy
+    private Image mrKrabImg;          // Medium FIRE
+    private Image garyImg;            // Medium WATER
+    private Image sandyImg;           // Medium ELECTRIC
+    private Image kingNeptuneImg;     // Hard enemy
+    private Image spawnImg;           // marker ของจุด spawn
     private Image rockImg;
     private Image seaweedImg;
     private Image bombImg;
@@ -98,9 +127,12 @@ public class GameController extends StackPane {
         loadAudio();
         createPlayer();
         setupMap();
+        setupEnemies();
         setupUI();
         renderGrid();
         startTimer();
+        startEnemyTimer();
+        startSpawnTimer();
 
         this.setFocusTraversable(true);
 
@@ -143,6 +175,13 @@ public class GameController extends StackPane {
         spongebobImg = tryLoadImage("/images/gamePlay/spongebob.png");   // ใช้ชื่อไฟล์ตามที่ใส่ใน resources
         patrickImg    = tryLoadImage("/images/gamePlay/patrick.png");
         squidWardImg = tryLoadImage("/images/gamePlay/squidward.png");
+        // enemies
+        npcImg          = tryLoadImage("/images/gamePlay/npc.png");           // Easy
+        mrKrabImg       = tryLoadImage("/images/gamePlay/mrKrab.png");        // Medium FIRE
+        garyImg         = tryLoadImage("/images/gamePlay/gary.png");          // Medium WATER
+        sandyImg        = tryLoadImage("/images/gamePlay/sandy.png");         // Medium ELECTRIC
+        kingNeptuneImg  = tryLoadImage("/images/gamePlay/kingneptune.png");   // Hard
+        spawnImg        = tryLoadImage("/images/gamePlay/spawn.png");         // spawn marker
         rockImg      = tryLoadImage("/images/gamePlay/rock.png");
         seaweedImg   = tryLoadImage("/images/gamePlay/seaweed.png");
         bombImg      = tryLoadImage("/images/gamePlay/bomb.png");
@@ -314,6 +353,419 @@ public class GameController extends StackPane {
         }
     }
 
+    // ── Setup enemies ตาม stage ──────────────────────
+    //   Stage 1: 5 Easy initial → ทุก 10 วิ medium 1 ตัวจนรวม 10
+    //   Stage 2: 7 Medium initial → ทุก 10 วิ medium 1 ตัวจนรวม 15
+    //   Stage 3: 5 Medium (บางตัวมี shield) → ทุก 10 วิ จนรวม 20
+    //   Stage 4: 7 Medium (บางตัวมี shield) → ทุก 10 วิ จนรวม 25
+    //   Stage 5: 10 Medium → ทุก 10 วิ จน kill 25 → reset map + 2 Hard + ทุก 30 วิ จนรวม 30
+    private void setupEnemies() {
+        enemies        = new ArrayList<>();
+        totalSpawned   = 0;
+        stagePhase     = 1;
+        phase2Started  = false;
+
+        switch (config.getLevel()) {
+            case 1:
+                spawnInitialEasy(5);
+                break;
+            case 2:
+                spawnInitialMedium(7, false);
+                break;
+            case 3:
+                spawnInitialMedium(5, true);   // some shielded
+                break;
+            case 4:
+                spawnInitialMedium(7, true);   // some shielded
+                break;
+            case 5:
+                spawnInitialMedium(10, false);
+                break;
+        }
+    }
+
+    // ── Initial spawn helpers (random, ห่างจาก player) ──
+    private void spawnInitialEasy(int count) {
+        for (int i = 0; i < count; i++) {
+            int[] pos = randomWalkableNotNearPlayer(3);
+            if (pos == null) break;
+            EasyEnemy e = new EasyEnemy(1, pos[1], pos[0], false);
+            enemies.add(e);
+            totalSpawned++;
+        }
+    }
+
+    private void spawnInitialMedium(int count, boolean someShielded) {
+        for (int i = 0; i < count; i++) {
+            int[] pos = randomWalkableNotNearPlayer(3);
+            if (pos == null) break;
+            Element elem  = randomElement();
+            boolean shield = someShielded && Math.random() < 0.4;   // ~40% มี shield
+            MediumEnemy e = new MediumEnemy(1, pos[1], pos[0], elem, shield);
+            enemies.add(e);
+            totalSpawned++;
+        }
+    }
+
+    private Element randomElement() {
+        Element[] elems = { Element.FIRE, Element.WATER, Element.ELECTRIC };
+        return elems[(int)(Math.random() * elems.length)];
+    }
+
+    // หาช่องสุ่มที่เดินได้ + ห่างจาก player อย่างน้อย minDist (Manhattan)
+    private int[] randomWalkableNotNearPlayer(int minDist) {
+        int rows = config.getRows();
+        int cols = config.getCols();
+        for (int attempt = 0; attempt < 200; attempt++) {
+            int r = (int)(Math.random() * rows);
+            int c = (int)(Math.random() * cols);
+            if (!isTileFreeForSpawn(r, c)) continue;
+            int dist = Math.abs(r - playerRow) + Math.abs(c - playerCol);
+            if (dist < minDist) continue;
+            return new int[]{r, c};
+        }
+        return null;
+    }
+
+    // ช่องที่ "ว่างพอจะ spawn enemy ได้"
+    private boolean isTileFreeForSpawn(int r, int c) {
+        if (r < 0 || r >= config.getRows() || c < 0 || c >= config.getCols()) return false;
+        if (map[r][c] instanceof Rock) return false;
+        if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) return false;
+        if (hasBomb[r][c]) return false;
+        if (r == playerRow && c == playerCol) return false;
+        for (Enemy en : enemies) {
+            if (enemyOccupiesTile(en, r, c)) return false;
+        }
+        return true;
+    }
+
+    // ตรวจว่า Hard ลง 2×2 ตรง anchor (r,c) ได้มั้ย
+    private boolean canHardOccupy(int r, int c) {
+        for (int dr = 0; dr < 2; dr++) {
+            for (int dc = 0; dc < 2; dc++) {
+                if (!isTileFreeForSpawn(r + dr, c + dc)) return false;
+            }
+        }
+        return true;
+    }
+
+    // ── Spawn timer (ทุก 10 วิ — Stage 5 phase 2 จะเปลี่ยนเป็น 30 วิ) ──
+    private void startSpawnTimer() {
+        spawnTimer = new Timeline(new KeyFrame(Duration.seconds(10), e -> tickSpawn()));
+        spawnTimer.setCycleCount(Timeline.INDEFINITE);
+        spawnTimer.play();
+    }
+
+    private void tickSpawn() {
+        int level = config.getLevel();
+        int cap = phase1Cap(level);
+
+        // Stage 5 phase 2 → spawn Hard random
+        if (level == 5 && stagePhase == 2) {
+            if (totalSpawned >= 30) return;
+            spawnHardRandom();
+            return;
+        }
+
+        // ทุก stage phase 1 → spawn Medium ที่จุด P
+        if (totalSpawned >= cap) return;
+        boolean withShield = (level == 3 || level == 4);
+        spawnMediumAtSpawnPoint(withShield);
+    }
+
+    // จำนวนสูงสุดที่ phase 1 จะ spawn (ก่อนเข้า phase 2 ของ stage 5)
+    private int phase1Cap(int level) {
+        switch (level) {
+            case 1: return 10;
+            case 2: return 15;
+            case 3: return 20;
+            case 4: return 25;
+            case 5: return 25;   // phase 1 ของ stage 5 หยุดที่ 25 รอเข้า phase 2
+        }
+        return 0;
+    }
+
+    // ── Spawn 1 ตัวจากจุด P ──
+    private void spawnMediumAtSpawnPoint(boolean canShield) {
+        List<int[]> spawns = new ArrayList<>(config.getEnemySpawns());
+        if (spawns.isEmpty()) {
+            // ไม่มี P เลย — fallback random
+            int[] pos = randomWalkableNotNearPlayer(3);
+            if (pos == null) return;
+            addMedium(pos[0], pos[1], canShield);
+            return;
+        }
+        java.util.Collections.shuffle(spawns);
+        for (int[] s : spawns) {
+            if (isTileFreeForSpawn(s[0], s[1])) {
+                addMedium(s[0], s[1], canShield);
+                return;
+            }
+        }
+    }
+
+    private void addMedium(int row, int col, boolean canShield) {
+        Element elem  = randomElement();
+        boolean shield = canShield && Math.random() < 0.4;
+        MediumEnemy e = new MediumEnemy(1, col, row, elem, shield);
+        enemies.add(e);
+        totalSpawned++;
+        renderGrid();
+    }
+
+    // Spawn Hard random — Stage 5 phase 2 (ใช้ 2×2 บนแผนที่)
+    private void spawnHardRandom() {
+        int rows = config.getRows();
+        int cols = config.getCols();
+        for (int attempt = 0; attempt < 300; attempt++) {
+            int r = (int)(Math.random() * (rows - 1));   // เผื่อ r+1 อยู่ในแผนที่
+            int c = (int)(Math.random() * (cols - 1));
+            if (!canHardOccupy(r, c)) continue;
+            int dist = Math.abs(r - playerRow) + Math.abs(c - playerCol);
+            if (dist < 3) continue;                      // ห่างจาก player พอสมควร
+            Element elem = randomElement();
+            HardEnemy e = new HardEnemy(2, c, r, elem, false);   // size=2, posX=col, posY=row (anchor = top-left)
+            enemies.add(e);
+            totalSpawned++;
+            renderGrid();
+            return;
+        }
+    }
+
+    // ── Stage 5 — เข้า phase 2: เคลียร์ rock/seaweed + spawn 2 Hard + เปลี่ยน timer 30 วิ ──
+    private void triggerStage5Phase2() {
+        if (config.getLevel() != 5 || phase2Started) return;
+        phase2Started = true;
+        stagePhase = 2;
+
+        int rows = config.getRows();
+        int cols = config.getCols();
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (map[r][c] instanceof Rock) {
+                    map[r][c] = new Tile(r, c);     // เคลียร์ rock
+                }
+                if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
+                    seaweeds[r][c].destroy();        // เคลียร์ seaweed
+                }
+                // (ไม่เคลียร์ buff — buff คงอยู่บนแผนที่เหมือนเดิม)
+            }
+        }
+
+        // spawn 2 Hard ทันที
+        spawnHardRandom();
+        spawnHardRandom();
+
+        // เปลี่ยน interval ของ spawnTimer เป็น 30 วินาที
+        if (spawnTimer != null) {
+            spawnTimer.stop();
+            spawnTimer.getKeyFrames().clear();
+            spawnTimer.getKeyFrames().add(new KeyFrame(Duration.seconds(30), e -> tickSpawn()));
+            spawnTimer.play();
+        }
+
+        renderGrid();
+    }
+
+    // เช็กว่า enemy ตัวนี้ครอบคลุมช่อง (r,c) หรือไม่ — Hard ใช้ 2×2
+    private boolean enemyOccupiesTile(Enemy e, int r, int c) {
+        int er = e.getPosY();
+        int ec = e.getPosX();
+        if (e.getLevel() == Level.HARD) {
+            return (r == er || r == er + 1) && (c == ec || c == ec + 1);
+        }
+        return r == er && c == ec;
+    }
+
+    // คืน Enemy ที่อยู่ตำแหน่ง (r,c) — ไม่มี → null
+    private Enemy enemyAt(int r, int c) {
+        for (Enemy e : enemies) {
+            if (enemyOccupiesTile(e, r, c)) return e;
+        }
+        return null;
+    }
+
+    // เลือกรูปของ enemy ตาม Level + Element
+    private Image enemyImage(Enemy e) {
+        Level lvl = e.getLevel();
+        if (lvl == null) return npcImg;
+        switch (lvl) {
+            case EASY:
+                return npcImg;
+            case MEDIUM:
+                if (e.getElement() == null) return mrKrabImg;
+                switch (e.getElement()) {
+                    case FIRE:     return mrKrabImg;
+                    case WATER:    return garyImg;
+                    case ELECTRIC: return sandyImg;
+                    default:       return mrKrabImg;
+                }
+            case HARD:
+                return kingNeptuneImg;
+            default:
+                return npcImg;
+        }
+    }
+
+    // เช็กว่า enemy เดินไปช่อง (r,c) ได้มั้ย
+    //   - ต้องอยู่ในแผนที่
+    //   - ห้ามเป็น Rock / Seaweed (ที่ยังไม่ทำลาย) / ระเบิด / ตัว enemy อื่น
+    private boolean canEnemyWalk(int r, int c, Enemy self) {
+        if (r < 0 || r >= config.getRows()) return false;
+        if (c < 0 || c >= config.getCols()) return false;
+        if (map[r][c] instanceof Rock) return false;
+        if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) return false;
+        if (hasBomb[r][c]) return false;
+        for (Enemy other : enemies) {
+            if (other == self) continue;
+            if (enemyOccupiesTile(other, r, c)) return false;
+        }
+        return true;
+    }
+
+    // เช็กว่า Hard เดินไป "anchor" (r,c) ได้มั้ย — ต้องเช็ก 2×2 area
+    private boolean canHardWalk(int newR, int newC, Enemy self) {
+        int rows = config.getRows();
+        int cols = config.getCols();
+        if (newR < 0 || newR + 1 >= rows) return false;
+        if (newC < 0 || newC + 1 >= cols) return false;
+        for (int dr = 0; dr < 2; dr++) {
+            for (int dc = 0; dc < 2; dc++) {
+                int rr = newR + dr;
+                int cc = newC + dc;
+                if (map[rr][cc] instanceof Rock) return false;
+                if (seaweeds[rr][cc] != null && !seaweeds[rr][cc].isDestroyed()) return false;
+                if (hasBomb[rr][cc]) return false;
+                for (Enemy other : enemies) {
+                    if (other == self) continue;
+                    if (enemyOccupiesTile(other, rr, cc)) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // ── Logic การเดินของ enemy (dispatcher) ──
+    //   Easy / Medium → เดินสุ่ม (logic เดิม: ตรงไปก่อน → เลี้ยว → ถอยหลัง)
+    //   Hard         → ไล่ตาม player (เลือกทิศที่ใกล้ player ที่สุด)
+    private void moveEnemy(Enemy e) {
+        if (e.getLevel() == Level.HARD) {
+            moveHardFollowPlayer(e);
+        } else {
+            moveRandom(e);
+        }
+        // ดาเมจ player ทำใน checkPlayerEnemyCollision() ที่ enemyTimer เรียกอยู่แล้ว
+    }
+
+    private void moveRandom(Enemy e) {
+        int dir = e.getCurrentDir();
+        int r = e.getPosY();
+        int c = e.getPosX();
+
+        // 1. ลองเดินทางตรงต่อ
+        int nr = r + DR[dir];
+        int nc = c + DC[dir];
+        if (canEnemyWalk(nr, nc, e)) {
+            e.setPosY(nr);
+            e.setPosX(nc);
+            return;
+        }
+
+        // 2. ทางตัน → หาตัวเลือกใหม่ ยกเว้นทิศเดิมและทิศตรงข้าม
+        int reverse = dir ^ 1;
+        List<Integer> options = new ArrayList<>();
+        for (int d = 0; d < 4; d++) {
+            if (d == dir || d == reverse) continue;
+            int rr = r + DR[d];
+            int cc = c + DC[d];
+            if (canEnemyWalk(rr, cc, e)) options.add(d);
+        }
+
+        int newDir;
+        if (!options.isEmpty()) {
+            newDir = options.get((int)(Math.random() * options.size()));
+        } else {
+            int rr = r + DR[reverse];
+            int cc = c + DC[reverse];
+            if (canEnemyWalk(rr, cc, e)) {
+                newDir = reverse;
+            } else {
+                return;
+            }
+        }
+
+        e.setCurrentDir(newDir);
+        e.setPosY(r + DR[newDir]);
+        e.setPosX(c + DC[newDir]);
+    }
+
+    // Hard เดินตาม player แบบ greedy — ลองทุกทิศ เลือกอันที่ใกล้ player ที่สุด
+    private void moveHardFollowPlayer(Enemy e) {
+        int r = e.getPosY();
+        int c = e.getPosX();
+        int bestDir = -1;
+        int bestDist = Integer.MAX_VALUE;
+
+        // ลำดับทิศสุ่ม → ถ้าเสมอจะไม่เลือก up เสมอ
+        int[] order = {0, 1, 2, 3};
+        for (int i = 3; i > 0; i--) {
+            int j = (int)(Math.random() * (i + 1));
+            int t = order[i]; order[i] = order[j]; order[j] = t;
+        }
+
+        for (int d : order) {
+            int nr = r + DR[d];
+            int nc = c + DC[d];
+            if (!canHardWalk(nr, nc, e)) continue;
+            // ระยะจากใจกลาง 2×2 ใหม่ ถึง player (ใช้ Manhattan แบบหยาบ)
+            int dist = Math.abs(nr - playerRow) + Math.abs(nc - playerCol);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestDir  = d;
+            }
+        }
+
+        if (bestDir >= 0) {
+            e.setCurrentDir(bestDir);
+            e.setPosY(r + DR[bestDir]);
+            e.setPosX(c + DC[bestDir]);
+        }
+    }
+
+    private void tickEnemies() {
+        for (Enemy e : enemies) moveEnemy(e);
+        renderGrid();
+    }
+
+    private void startEnemyTimer() {
+        enemyTimer = new Timeline(new KeyFrame(Duration.millis(600), e -> {
+            tickEnemies();
+            checkPlayerEnemyCollision();
+        }));
+        enemyTimer.setCycleCount(Timeline.INDEFINITE);
+        enemyTimer.play();
+    }
+
+    // ── Pause / Resume ทั้ง main timer + enemy timer + spawn timer พร้อมกัน ──
+    private void pauseAll() {
+        Timeline t1 = timer;
+        Timeline t2 = enemyTimer;
+        Timeline t3 = spawnTimer;
+        if (t1 != null) t1.stop();
+        if (t2 != null) t2.stop();
+        if (t3 != null) t3.stop();
+    }
+
+    private void resumeAll() {
+        Timeline t1 = timer;
+        Timeline t2 = enemyTimer;
+        Timeline t3 = spawnTimer;
+        if (t1 != null) t1.play();
+        if (t2 != null) t2.play();
+        if (t3 != null) t3.play();
+    }
+
     // ── Movement ────────────────────────────────────────
     private void tryMove(int dr, int dc) {
         int nr = playerRow + dr;
@@ -331,26 +783,34 @@ public class GameController extends StackPane {
 
         if (buffMap[playerRow][playerCol] != null) {
             Buff currentBuff = buffMap[playerRow][playerCol];
+            int level = config.getLevel();
+            boolean shieldDisabled = (level == 3 || level == 4);   // Stage 3-4 ห้ามเก็บ shield
 
-            // 1. ส่งผลกับตัวละคร
-            currentBuff.apply(player);
+            // ถ้าเป็น ShieldBuff ใน stage 3 หรือ 4 → ไม่ apply, ไม่ลบ (อยู่บน map ต่อไปแบบเก็บไม่ได้)
+            if (currentBuff instanceof ShieldBuff && shieldDisabled) {
+                // skip — เห็นไอคอนแต่กินไม่ได้
+            } else {
+                // 1. ส่งผลกับตัวละคร
+                currentBuff.apply(player);
 
-            // 2. ถ้าเป็นบัฟที่ส่งผลต่อจำนวนระเบิดใน UI (ต้องอัปเดต Label ด้วย)
-            if (currentBuff instanceof MaxBombBuff) {
-                maxBombs++;
-                bombsLeft++;
-                updateBombLabel();
-            }else if (currentBuff instanceof HealBuff) {
-                if (hearts < 5) hearts++;
-                updateHearts();
+                // 2. ถ้าเป็นบัฟที่ส่งผลต่อจำนวนระเบิดใน UI (ต้องอัปเดต Label ด้วย)
+                if (currentBuff instanceof MaxBombBuff) {
+                    maxBombs++;
+                    bombsLeft++;
+                    updateBombLabel();
+                } else if (currentBuff instanceof HealBuff) {
+                    if (hearts < 5) hearts++;
+                    updateHearts();
+                }
+
+                // 3. ลบบัฟออกจากแผนที่หลังจากกินแล้ว
+                buffMap[playerRow][playerCol] = null;
+
+                // 4. (Optional) เล่นเสียงเก็บไอเทม
+                // SoundManager.playSFX(pickupSfx);
             }
-
-            // 3. ลบบัฟออกจากแผนที่หลังจากกินแล้ว
-            buffMap[playerRow][playerCol] = null;
-
-            // 4. (Optional) เล่นเสียงเก็บไอเทม
-            // SoundManager.playSFX(pickupSfx);
         }
+        checkPlayerEnemyCollision();
         renderGrid();
     }
 
@@ -393,6 +853,19 @@ public class GameController extends StackPane {
                 // กรณีไม่มีรูป ให้เปลี่ยนสีพื้นหลังตัว S แทน
                 cell.setStyle(playerStyle + "-fx-background-color: #fff176; -fx-font-weight: bold;");
                 cell.setText("S");
+            }
+            return;
+        }
+        // Enemy (วาดทับ tile แต่ player จะวาดทับ enemy อีกที — ตรวจไปแล้วด้านบน)
+        Enemy enemyHere = enemyAt(r, c);
+        if (enemyHere != null) {
+            Image img = enemyImage(enemyHere);
+            if (img != null) {
+                cell.setStyle(baseStyle);
+                cell.setGraphic(makeCellImage(img));
+            } else {
+                cell.setStyle("-fx-background-color: #ff7043; -fx-border-color: #bf360c; -fx-font-weight: bold;");
+                cell.setText("E");
             }
             return;
         }
@@ -442,6 +915,19 @@ public class GameController extends StackPane {
                 cell.setGraphic(makeCellImage(bImg));
                 return;
             }
+        }
+
+        // Spawn-point marker — แสดงรูป spawn.png บนช่องที่มาร์ค 'P' ใน layout
+        // (เดินทับได้ตามปกติ — ไม่ใช่สิ่งกีดขวาง)
+        if (config.tileAt(r, c) == 'P') {
+            if (spawnImg != null) {
+                cell.setStyle(baseStyle);
+                cell.setGraphic(makeCellImage(spawnImg));
+            } else {
+                cell.setStyle("-fx-background-color: #f8bbd0; -fx-border-color: #ec407a; -fx-font-weight: bold;");
+                cell.setText("P");
+            }
+            return;
         }
 
         // plain tile (or destroyed seaweed → ผ่านได้)
@@ -496,7 +982,7 @@ public class GameController extends StackPane {
                 "-fx-background-color: #e0e0e0; -fx-background-radius: 8;");
         */
         pauseBtn.setOnAction(e -> {
-            timer.stop();
+            pauseAll();
             showPauseMenu();
         });
 
@@ -514,7 +1000,7 @@ public class GameController extends StackPane {
     private void skillsInformation() {
         if (infoPopup != null && infoPopup.isShowing()) {
             infoPopup.close();
-            timer.play();
+            resumeAll();
             return;
         }
 
@@ -539,14 +1025,14 @@ public class GameController extends StackPane {
         infoScene.setOnKeyPressed(event -> {
             if (event.getCode() == javafx.scene.input.KeyCode.U) {
                 infoPopup.close();
-                timer.play();
+                resumeAll();
                 this.requestFocus();
             }
         });
 
         infoPopup.setScene(infoScene);
 
-        timer.stop();
+        pauseAll();
 
         infoPopup.show();
     }
@@ -555,11 +1041,11 @@ public class GameController extends StackPane {
         // 1. ถ้าเปิดอยู่แล้ว ให้ปิดและเล่นต่อ (Toggle Off)
         if (pausePopup != null && pausePopup.isShowing()) {
             pausePopup.close();
-            timer.play();
+            resumeAll();
             return;
         }
 
-        timer.stop();
+        pauseAll();
 
         this.pausePopup = new Stage();
         pausePopup.initModality(Modality.APPLICATION_MODAL);
@@ -572,7 +1058,7 @@ public class GameController extends StackPane {
         resumeBtn.setPrefWidth(100);
         resumeBtn.setOnAction(e -> {
             pausePopup.close();
-            timer.play();
+            resumeAll();
         });
 
         Button quitBtn = new Button("Quit to home");
@@ -592,7 +1078,7 @@ public class GameController extends StackPane {
         pauseScene.setOnKeyPressed(event -> {
             if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 pausePopup.close();
-                timer.play();
+                resumeAll();
                 this.requestFocus();
             }
         });
@@ -672,7 +1158,7 @@ public class GameController extends StackPane {
         infoBtn.setPrefSize(36, 36);
         infoBtn.setFocusTraversable(false);
         infoBtn.setStyle("-fx-background-radius: 18; -fx-border-radius: 18; -fx-border-color: #e53935; -fx-border-width: 2;");
-        infoBtn.setOnAction(e -> { timer.stop(); skillsInformation(); });
+        infoBtn.setOnAction(e -> { pauseAll(); skillsInformation(); });
 
         Label info = new Label("[U]");
         info.setFont(Font.font(15));
@@ -759,7 +1245,7 @@ public class GameController extends StackPane {
     private void startTimer() {
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             if (timeLeft <= 0) {
-                timer.stop();
+                pauseAll();
                 setGameStatus(Status.LOSE);
                 gameOver();
             }
@@ -775,7 +1261,7 @@ public class GameController extends StackPane {
                 timerLabel.setStyle(timerLabel.getStyle() + "-fx-text-fill: #e53935;");
         }));
         timer.setCycleCount(Timeline.INDEFINITE);
-        timer.play();
+        resumeAll();
     }
 
     // ── PLANT BOMB AT PLAYER POSITION ───────────────────
@@ -838,6 +1324,9 @@ public class GameController extends StackPane {
             }
         }
 
+        // 1.5 ทำดาเมจ enemy ที่อยู่ในระยะระเบิด
+        applyEnemyDamage(toExplode);
+
         // 2. เคลียร์สถานะระเบิด
         for (int r = 0; r < config.getRows(); r++) {
             for (int c = 0; c < config.getCols(); c++) {
@@ -852,6 +1341,87 @@ public class GameController extends StackPane {
 
         // แสดง Effect กะพริบสีแดง
         applyExplosionEffect(toExplode);
+    }
+
+    // ── ระเบิดทำดาเมจ enemy ──
+    //   ใช้ ElementUtil คำนวณดาเมจตามธาตุ (Easy = NONE → ผู้เล่นได้ x2)
+    //   Hard = 2×2 → โดนบอม ถ้าระเบิดโดนช่องไหนใน 2×2 ก็นับเป็นโดน
+    //   ถ้า enemy มี shield → กิน shield 1 ครั้ง ไม่เสีย HP
+    //   ถ้า HP ≤ 0 → ลบออกจาก list, kills++
+    private void applyEnemyDamage(boolean[][] toExplode) {
+        Iterator<Enemy> it = enemies.iterator();
+        while (it.hasNext()) {
+            Enemy en = it.next();
+            boolean hit = false;
+
+            int rows = config.getRows();
+            int cols = config.getCols();
+            if (en.getLevel() == Level.HARD) {
+                outer:
+                for (int dr = 0; dr < 2; dr++) {
+                    for (int dc = 0; dc < 2; dc++) {
+                        int rr = en.getPosY() + dr;
+                        int cc = en.getPosX() + dc;
+                        if (rr >= 0 && rr < rows && cc >= 0 && cc < cols && toExplode[rr][cc]) {
+                            hit = true;
+                            break outer;
+                        }
+                    }
+                }
+            } else {
+                int er = en.getPosY();
+                int ec = en.getPosX();
+                if (er >= 0 && er < rows && ec >= 0 && ec < cols && toExplode[er][ec]) {
+                    hit = true;
+                }
+            }
+            if (!hit) continue;
+
+            // shield ของ enemy → กิน 1 ครั้งแล้วหาย
+            if (en.isShielded()) {
+                en.setShielded(false);
+                continue;
+            }
+
+            int dmg = elementUtil.calculateCharacterDamage(player, en);
+            en.setHealth(en.getHealth() - dmg);
+
+            if (en.getHealth() <= 0) {
+                it.remove();
+                kills++;
+            }
+        }
+        // อัปเดตตัวเลขที่ top bar
+        if (killLabel != null) killLabel.setText(kills + " / " + config.getGoal());
+
+        // Stage 5 — ฆ่าครบ 25 → เข้า phase 2 (เคลียร์ rock/seaweed + 2 Hard)
+        if (config.getLevel() == 5 && !phase2Started && kills >= 25) {
+            triggerStage5Phase2();
+        }
+    }
+
+    // ── enemy ทำดาเมจ player (เรียกตอน enemy ขยับมาทับ player หรือ player เดินไปชน enemy) ──
+    //   ใช้ ElementUtil คำนวณดาเมจตามธาตุ (Strong x2 / Weak ÷2 / Same x1)
+    //   ถ้า player มี shield → กิน 1 ครั้งแล้วหาย ไม่เสียเลือด
+    private void damageFromEnemy(Enemy e) {
+        if (player.hasShield()) {
+            player.setShield(false);
+            return;
+        }
+        int dmg = elementUtil.calculateEnemyDamage(e, player);
+        hearts -= dmg;
+        if (hearts < 0) hearts = 0;
+        updateHearts();
+    }
+    private void checkPlayerEnemyCollision() {
+        // ใช้ enemyOccupiesTile() — รองรับ Hard 2×2 ด้วย
+        // ทำดาเมจครั้งเดียวต่อ tick (กันโดน Hard ตี 4 ครั้งต่อรอบเพราะกินพื้นที่ 4 ช่อง)
+        for (Enemy e : enemies) {
+            if (enemyOccupiesTile(e, playerRow, playerCol)) {
+                damageFromEnemy(e);
+                return;   // โดน 1 ตัวพอต่อ tick
+            }
+        }
     }
 
     // --- ฟังก์ชันเสริมสำหรับทำ Effect ---

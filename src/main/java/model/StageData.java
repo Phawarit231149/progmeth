@@ -38,7 +38,7 @@ public class StageData {
             ".S.RS.SR.S.",
             ".R.......R.",
             "....SRS....",
-            "P..S...S..P"
+            "P..S.C.S..P"
     };
 
     // ── MAP II (13 cols × 10 rows) ───────────────
@@ -46,7 +46,7 @@ public class StageData {
             "PSR.......SRP",
             "....RR.RR.SR.",
             "S..RSSSSSR.S.",
-            "S.RS.....SRS.",
+            "S.RS..C..SRS.",
             "...RS...SR.R.",
             "S...RS.SRSS..",
             "RRSRSRSR...SS",
@@ -66,7 +66,7 @@ public class StageData {
             "...............",
             ".RR.S.S.S.S.RR.",
             ".PRS.S.S.S.SRP.",
-            "SS...........SS"
+            "SS.....C.....SS"
     };
 
     // ── MAP IV (17 cols × 10 rows) ───────────────
@@ -76,7 +76,7 @@ public class StageData {
             ".RS..S.....S..SR.",
             ".S..S.PR.RP.S..S.",
             ".RS.S.R...R.S.SR.",
-            ".RS.S.......S.SR.",
+            ".RS.S...C...S.SR.",
             ".S..S.R...R.S..S.",
             ".RS.S.PR.RP.S.SR.",
             ".RS..S.....S..SR.",
@@ -89,8 +89,8 @@ public class StageData {
             "....R.........R.S.S",
             "SS..S.........S.SSS",
             "..S.S..RRSRR..S....",
-            "..S.S..RRSRR..S....",
-            "SS..S..S...S..S....",
+            "..S.S..RS.SR..S....",
+            "SS..S..S.C.S..S....",
             "....S..RS.SR..S....",
             "SSS.R..RRSRR..R....",
             "S.S.RR.SSSSS.RR....",

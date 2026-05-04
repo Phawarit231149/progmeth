@@ -14,6 +14,7 @@ public abstract class Enemy {
     private Element element;
     private boolean isShielded;
     private Level level;
+    private int currentDir;   // 0 = up, 1 = down, 2 = left, 3 = right
     protected Random random = new Random();
 
     public Enemy(int size, int posX,int posY,Element element,boolean isShielded){
@@ -22,8 +23,12 @@ public abstract class Enemy {
         setPosY(posY);
         setElement(element);
         setShielded(isShielded);
+        this.currentDir = random.nextInt(4);   // เริ่มสุ่มทิศ 1 ทิศ
         //this.level=level;
     }
+
+    public int getCurrentDir() { return currentDir; }
+    public void setCurrentDir(int dir) { this.currentDir = dir; }
 
 
     public void moveRandomly(int maxCols, int maxRows) {
