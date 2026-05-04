@@ -248,10 +248,68 @@ public class GameController extends StackPane {
                         break;
                     case 'S':
                         seaweeds[r][c] = new Seaweed(r, c);
+
+                        double chance =  Math.random();
+                        if (chance < 0.1) {buffMap[r][c] = new MaxBombBuff(r,c);}
+                        else if(chance < 0.2){buffMap[r][c]= new BombRangeBuff(r,c);}
+                        else if(chance < 0.3){buffMap[r][c]= new BombDamageBuff(r,c);}
+                        else if(chance < 0.4){buffMap[r][c]= new ShieldBuff(r,c);}
+                        else if(chance < 0.5){buffMap[r][c]= new HealBuff(r,c);}
                         break;
+
                     default:
                         break;
                 }
+            }
+        }
+
+        int row1 = (int)(Math.random() * config.getRows());
+        int col1 = (int)(Math.random() * config.getCols());
+        int[][] maxBombPositions = {{row1,col1}};
+        for (int[] p : maxBombPositions) {
+            int  r = p[0], c = p[1];
+            if (r > 0 && r < rows && c > 0 && c < cols) {
+                buffMap[r][c] = new MaxBombBuff(r,c);
+            }
+        }
+
+        int row2 = (int)(Math.random() * config.getRows());
+        int col2 = (int)(Math.random() * config.getCols());
+        int[][] bombRangePositions = {{row2,col2}};
+        for (int[] p : bombRangePositions) {
+            int  r = p[0], c = p[1];
+            if (r > 0 && r < rows && c > 0 && c < cols) {
+                buffMap[r][c] = new BombRangeBuff(r,c);
+            }
+        }
+
+        int row3 = (int)(Math.random() * config.getRows());
+        int col3 = (int)(Math.random() * config.getCols());
+        int[][] damagePositions = {{row3,col3}};
+        // กำหนดพิกัดที่ต้องการ
+        for (int[] p : damagePositions) {
+            int r = p[0], c = p[1];
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                buffMap[r][c] = new BombDamageBuff(r, c);
+            }
+        }
+
+        int row4 = (int)(Math.random() * config.getRows());
+        int col4 = (int)(Math.random() * config.getCols());
+        int[][] healPositions = {{row4,col4}}; // กำหนดพิกัดที่ต้องการ
+        for (int[] p : healPositions) { int r = p[0], c = p[1];
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                buffMap[r][c] = new HealBuff(r, c);
+            }
+        }
+
+        int row5 = (int)(Math.random() * config.getRows());
+        int col5 = (int)(Math.random() * config.getCols());
+        int[][] shieldPositions = {{row5,col5}}; // กำหนดพิกัดที่ต้องการ
+        for (int[] p : shieldPositions) {
+            int r = p[0], c = p[1];
+            if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                buffMap[r][c] = new ShieldBuff(r, c);
             }
         }
     }
