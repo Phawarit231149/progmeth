@@ -16,11 +16,14 @@ public class ElementUtil {
 
     public int calculateEnemyDamage(Enemy attacker, Character defender){
         if((isStrongAgainst(attacker.getElement(),defender.getElement()))){
-            return attacker.getDamage() + 1;
+            //return attacker.getDamage() + 1;
+            return 3;
         } if(isWeakAgainst(attacker.getElement(),defender.getElement())){
-            return attacker.getDamage() - 1;
+            //return attacker.getDamage() - 1;
+            return 1;
         }
-        return attacker.getDamage();
+        //return attacker.getDamage();
+        return 2;
     }
 
     private boolean isStrongAgainst(Element element, Element other) {
@@ -34,6 +37,7 @@ public class ElementUtil {
     private boolean isWeakAgainst(Element element, Element other) {
         return ( element== Element.FIRE    && other == Element.WATER)    ||
                 (element == Element.WATER   && other == Element.ELECTRIC) ||
-                (element == Element.ELECTRIC && other == Element.FIRE) ;
+                (element == Element.ELECTRIC && other == Element.FIRE) ||
+                (element == Element.NONE);
     }
 }
