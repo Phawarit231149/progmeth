@@ -201,12 +201,14 @@ public class GameController extends StackPane {
             default:
                 break;
         }
-        playerRow = 0;
-        playerCol = 0;
+        // อ่าน spawn point จาก layout (ตัว 'C' ใน StageData)
+        int[] spawn = config.getPlayerSpawn();
+        playerRow = spawn[0];
+        playerCol = spawn[1];
         player.setPos(playerCol, playerRow);
     }
 
-    // ── Setup map with rocks and seaweeds ───────────────
+    // ── Setup map with rocks and seaweeds (จาก layout ของ stage) ──
     private void setupMap() {
         int rows = config.getRows();
         int cols = config.getCols();
@@ -215,28 +217,26 @@ public class GameController extends StackPane {
         seaweeds = new Seaweed[rows][cols];
         hasBomb  = new boolean[rows][cols];
 
-        // initialize every tile as plain Tile
+        // อ่าน layout จาก StageData
+        //   .  = empty
+        //   R  = rock
+        //   S  = seaweed
+        //   C  = player spawn  (เป็นพื้นเปล่า ตัวละครจะวาดทับ)
+        //   P  = enemy spawn   (เป็นพื้นเปล่า ใช้ทีหลัง)
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 map[r][c] = new Tile(r, c);
-            }
-        }
-
-        // place rocks (hardcoded for demo)
-        int[][] rockPositions = { {2,3}, {2,4}, {3,3}, {5,5}, {5,6}, {7,2}, {7,8} };
-        for (int[] p : rockPositions) {
-            int r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                map[r][c] = new Rock(r, c);
-            }
-        }
-
-        // place seaweeds (hardcoded for demo)
-        int[][] seaweedPositions = { {1,5}, {2,7}, {4,2}, {4,7}, {6,4}, {8,5}, {8,9} };
-        for (int[] p : seaweedPositions) {
-            int r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                seaweeds[r][c] = new Seaweed(r, c);
+                char ch = config.tileAt(r, c);
+                switch (ch) {
+                    case 'R':
+                        map[r][c] = new Rock(r, c);
+                        break;
+                    case 'S':
+                        seaweeds[r][c] = new Seaweed(r, c);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
