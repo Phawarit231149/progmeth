@@ -22,14 +22,6 @@ public class RuleController extends BorderPane {
 
 
         Button back = new Button("X");
-        back.setStyle(
-                "-fx-background-radius: 50;" +
-                        "-fx-min-width: 40px;" +
-                        "-fx-min-height: 40px;" +
-                        "-fx-background-color: #d1d1d1;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-font-size: 18px;"
-        );
 
         back.setOnAction(e -> {
             StageSelectController stageSelectController = new StageSelectController();
