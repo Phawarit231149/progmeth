@@ -76,7 +76,9 @@ public class StageSelectController extends BorderPane {
         for (int i = 0; i < 5; i++) {
             final int index = i;
             Button btn = createSelectStageButton(labels[i]);
-            btn.setOnAction(e -> selectStage(index));
+            btn.setOnAction(e -> {
+                selectStage(index);
+            });
             stageButtons[i] = btn;
             bar.getChildren().add(btn);
         }
