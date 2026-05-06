@@ -7,11 +7,11 @@ import game.entity.Enemy;
 public class ElementUtil {
     public int calculateCharacterDamage(Character attacker, Enemy defender){
         if((isStrongAgainst(attacker.getElement(),defender.getElement()))){
-            return attacker.getDamage() + 1;
+            return attacker.getDamage() + 2;
         } if(isWeakAgainst(attacker.getElement(),defender.getElement())){
-            return attacker.getDamage() - 1;
+            return attacker.getDamage() ;
         }
-        return attacker.getDamage();
+        return attacker.getDamage() + 1;
     }
 
     public int calculateEnemyDamage(Enemy attacker, Character defender){

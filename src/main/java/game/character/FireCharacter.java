@@ -9,7 +9,7 @@ public class FireCharacter extends Character implements Skillable {
 
     // ── Skill settings ────────────────────────
     // Teleport ไปยังช่อง tile ปกติ (ไม่ใช่ rock / seaweed / ช่องที่มีศัตรู)
-    private static final int COOLDOWN_SECONDS = 15;   // cooldown 15 วินาที
+    private static final int COOLDOWN_SECONDS = 30;   // cooldown 15 วินาที
 
     private long lastSkillUseTime = 0L;
     private boolean teleportArmed = false;            // กดสกิลแล้ว รอเลือกช่อง

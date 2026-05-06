@@ -9,6 +9,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
+import model.GameProgress;
 import model.StageData;
 
 public class StageSelectController extends BorderPane {
@@ -17,6 +18,7 @@ public class StageSelectController extends BorderPane {
     private Label stageTitle;
     private Button[] stageButtons;
     private String selectedElement = "";
+    private Button lastSelectedCharBtn = null;
 
     public StageSelectController() {
         initializeStageSelection(); // ✅ ต้องมาก่อน
@@ -75,9 +77,11 @@ public class StageSelectController extends BorderPane {
 
         for (int i = 0; i < 5; i++) {
             final int index = i;
-            Button btn = createSelectStageButton(labels[i]);
+            Button btn = createSelectStageButton(labels[i], GameProgress.isUnlocked(i));
             btn.setOnAction(e -> {
-                selectStage(index);
+                if (GameProgress.isUnlocked(index)) {
+                    selectStage(index);
+                }
             });
             stageButtons[i] = btn;
             bar.getChildren().add(btn);
@@ -88,6 +92,8 @@ public class StageSelectController extends BorderPane {
     }
 
     private void selectStage(int index) {
+        if (!GameProgress.isUnlocked(index)) return;
+
         selectedStage = index;
         StageData config = StageData.ALL_STAGES[index];
 
@@ -96,10 +102,18 @@ public class StageSelectController extends BorderPane {
                 " (" + config.getCols() + " x " + config.getRows() + ")");
 
         for (int i = 0; i < stageButtons.length; i++) {
-            stageButtons[i].setStyle(i == index
-                    ? "-fx-border-color: #2196F3; -fx-border-width: 2px; -fx-background-radius: 40;"
-                    : "-fx-background-radius: 40;");
+            javafx.scene.shape.Circle ring = getStageRing(stageButtons[i]);
+            if (ring == null) continue;
+            ring.setStroke(i == index
+                    ? javafx.scene.paint.Color.web("#2196F3")
+                    : javafx.scene.paint.Color.TRANSPARENT);
         }
+    }
+
+    private javafx.scene.shape.Circle getStageRing(Button btn) {
+        Object data = btn.getUserData();
+        if (data instanceof javafx.scene.shape.Circle c) return c;
+        return null;
     }
 
     private VBox stageInformation() {
@@ -141,54 +155,103 @@ public class StageSelectController extends BorderPane {
     }
 
     private void handleCharacterSelect(String name, Label choosingLabel, Button clickedBtn) {
+        javafx.scene.shape.Circle clickedRing = getRing(clickedBtn);
+
         if (selectedElement.equals(name)) {
+            // Deselect
             selectedElement = "";
             choosingLabel.setText("Character :   None");
             start.setDisable(true);
+            if (clickedRing != null) clickedRing.setStroke(javafx.scene.paint.Color.TRANSPARENT);
+            lastSelectedCharBtn = null;
         } else {
+            // Clear previous ring
+            if (lastSelectedCharBtn != null) {
+                javafx.scene.shape.Circle prevRing = getRing(lastSelectedCharBtn);
+                if (prevRing != null) prevRing.setStroke(javafx.scene.paint.Color.TRANSPARENT);
+            }
+            // Select new
             selectedElement = name;
             choosingLabel.setText("Character :   " + name);
             start.setDisable(false);
+            if (clickedRing != null) {
+                clickedRing.setStroke(javafx.scene.paint.Color.web("#2196F3"));
+            }
+            lastSelectedCharBtn = clickedBtn;
         }
     }
 
-    private Button createSelectStageButton(String name) {
-        Button btn = new Button(name);
-        btn.setPrefSize(70, 70);
-        btn.setStyle("-fx-background-radius: 40;");
+    private javafx.scene.shape.Circle getRing(Button btn) {
+        Object data = btn.getUserData();
+        if (data instanceof Object[] arr && arr.length > 1 && arr[1] instanceof javafx.scene.shape.Circle c) {
+            return c;
+        }
+        return null;
+    }
+
+    private Button createSelectStageButton(String label, boolean unlocked) {
+        double btnSize = 70;
+
+        javafx.scene.shape.Circle ring = new javafx.scene.shape.Circle(btnSize / 2 + 3);
+        ring.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        ring.setStroke(javafx.scene.paint.Color.TRANSPARENT);
+        ring.setStrokeWidth(3);
+
+        Label text = new Label(unlocked ? label : "🔒");
+        text.setFont(Font.font(unlocked ? 16 : 18));
+        text.setTextFill(unlocked
+                ? javafx.scene.paint.Color.BLACK
+                : javafx.scene.paint.Color.web("#757575"));
+
+        javafx.scene.shape.Circle bg = new javafx.scene.shape.Circle(btnSize / 2);
+        bg.setFill(unlocked
+                ? javafx.scene.paint.Color.web("#e0e0e0")
+                : javafx.scene.paint.Color.web("#bdbdbd"));
+
+        StackPane graphic = new StackPane(ring, bg, text);
+        graphic.setPrefSize(btnSize + 6, btnSize + 6);
+
+        Button btn = new Button();
+        btn.setGraphic(graphic);
+        btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        btn.setStyle("-fx-background-color: transparent; -fx-padding: 0;");
+        btn.setUserData(ring);
 
         return btn;
     }
 
-    private Button createSelectCharacterButton(String name,String imageName) {
-        Button btn = new Button(name);
+    private Button createSelectCharacterButton(String name, String imageName) {
         double btnSize = 70;
-        btn.setPrefSize(btnSize, btnSize);
-        btn.setMinSize(btnSize, btnSize);
-        btn.setMaxSize(btnSize, btnSize);
-
-        btn.setStyle("-fx-background-color: transparent; " +
-                "-fx-background-insets: 0; " +
-                "-fx-border-color: transparent; " +
-                "-fx-background-radius: 40;");
 
         Image image = new Image(getClass().getResourceAsStream("/images/" + imageName));
         ImageView imageView = new ImageView(image);
-
         imageView.setFitWidth(btnSize);
         imageView.setFitHeight(btnSize);
-
-        // ⭐️ สำคัญ: เปลี่ยนเป็น false เพื่อให้ภาพยืด/หดจนเต็มวงกลมพอดี
         imageView.setPreserveRatio(false);
 
-        // 3. ตัดรูปให้เป็นวงกลม (เช็คจุดศูนย์กลางให้แม่น)
         double radius = btnSize / 2;
         javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
         imageView.setClip(clip);
 
-        btn.setGraphic(imageView);
+        // Border ring — visible when selected
+        javafx.scene.shape.Circle ring = new javafx.scene.shape.Circle(radius + 3);
+        ring.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        ring.setStroke(javafx.scene.paint.Color.TRANSPARENT);
+        ring.setStrokeWidth(3);
 
+        StackPane graphic = new StackPane(ring, imageView);
+        graphic.setPrefSize(btnSize + 6, btnSize + 6);
+
+        Button btn = new Button();
+        btn.setGraphic(graphic);
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        btn.setStyle(
+                "-fx-background-color: transparent; " +
+                        "-fx-background-insets: 0; " +
+                        "-fx-border-color: transparent; " +
+                        "-fx-padding: 0;"
+        );
+        btn.setUserData(new Object[]{name, ring}); // store name + ring for later
 
         return btn;
     }

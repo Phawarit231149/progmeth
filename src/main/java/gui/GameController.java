@@ -36,6 +36,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import model.GameProgress;
 import model.StageData;
 
 import java.util.Timer;
@@ -196,8 +197,8 @@ public class GameController extends StackPane {
                                     cells[i][j].setStyle(baseStyle);
                                 }
                             }
-                            // Start a 5-second countdown to disarm if no click happens
-                            Timeline disarmTimer = new Timeline(new KeyFrame(Duration.seconds(3), e -> {
+                            // Start a 2-second countdown to disarm if no click happens
+                            Timeline disarmTimer = new Timeline(new KeyFrame(Duration.seconds(5), e -> {
                                 if (fire.isTeleportArmed()) {
                                     fire.cancelTeleport();
                                     setBaseStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
@@ -1758,6 +1759,9 @@ public class GameController extends StackPane {
     }
 
     private void gameOver() {
+        if (gameStatus == Status.WIN || gameStatus == Status.CLEAR) {
+            GameProgress.markCleared(config.getLevel() - 1); // level 1 → index 0, level 5 → index 4
+        }
         GameOverController gameOverController = new GameOverController(gameStatus, config, name);
         this.getScene().setRoot(gameOverController);
     }

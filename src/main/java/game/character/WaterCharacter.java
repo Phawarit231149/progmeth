@@ -6,7 +6,7 @@ public class WaterCharacter extends Character implements Skillable {
 
     // ── Skill settings ────────────────────────
     // สร้าง shield ป้องกันตัวเอง 1 ครั้ง (cooldown 90 วินาที)
-    private static final int COOLDOWN_SECONDS = 90;   // cooldown 90 วินาที
+    private static final int COOLDOWN_SECONDS = 30;   // cooldown 90 วินาที
 
     private long lastSkillUseTime = 0L;
 
