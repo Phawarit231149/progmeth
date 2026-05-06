@@ -358,13 +358,13 @@ public class GameController extends StackPane {
         // health=5, damage=1, damageBomb=1, bombRange=1, maxBombs=5
         switch (element) {
             case Element.FIRE:
-                player = new FireCharacter(5, 1, 1, 1, 5);
+                player = new FireCharacter(5, 1, 1, 5);
                 break;
             case Element.WATER:
-                player = new WaterCharacter(5, 1, 1, 1, 5);
+                player = new WaterCharacter(5, 1, 1, 5);
                 break;
             case Element.ELECTRIC:
-                player = new ElectricCharacter(5, 1, 1, 1, 5);
+                player = new ElectricCharacter(5, 1, 1, 5);
                 break;
             default:
                 break;
@@ -1520,7 +1520,6 @@ public class GameController extends StackPane {
                                 }
                                 else if (! player.hasShield()){
                                     hearts -= player.getDamage();
-                                    //player.takeDamage(player.getDamageBomb());
                                     updateHearts();
                                 }
                                 takeDamage = true;

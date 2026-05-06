@@ -24,7 +24,7 @@ public abstract class Character implements Skillable {
     // Element
     protected Element element;
 
-    public Character(int health, int damage, int damageBomb,
+    public Character(int health, int damage,
                      int bombRange, int maxBombs, Element element) {
         this.health     = health;
         this.maxHealth  = health;
@@ -47,9 +47,6 @@ public abstract class Character implements Skillable {
     }
 
     public int calculateDamage(Element enemyElement) {
-        if (enemyElement == null) {
-            return damage; // ดาเมจปกติ
-        }
         if (isWeakAgainst(enemyElement)) {
             return damage / 2; // อ่อนแอ → ดาเมจครึ่งนึง
         }
@@ -60,16 +57,17 @@ public abstract class Character implements Skillable {
     }
 
     // ── ตรวจสอบ element ───────────────────────
-    private boolean isStrongAgainst(Element other) {
-        return (element == Element.FIRE    && other == Element.WATER)    ||
-                (element == Element.WATER   && other == Element.ELECTRIC) ||
-                (element == Element.ELECTRIC && other == Element.FIRE);
+    public boolean isStrongAgainst(Element other) {
+        return (element == Element.FIRE    && other == Element.ELECTRIC)    ||
+                (element == Element.WATER   && other == Element.FIRE) ||
+                (element == Element.ELECTRIC && other == Element.WATER) ||
+                (other == Element.NONE);
     }
 
-    private boolean isWeakAgainst(Element other) {
-        return (element == Element.FIRE    && other == Element.ELECTRIC) ||
-                (element == Element.WATER   && other == Element.FIRE)     ||
-                (element == Element.ELECTRIC && other == Element.WATER);
+    public boolean isWeakAgainst(Element other) {
+        return (element == Element.FIRE    && other == Element.WATER) ||
+                (element == Element.WATER   && other == Element.ELECTRIC)     ||
+                (element == Element.ELECTRIC && other == Element.FIRE);
     }
 
     public int getRemainingCoolDown(){

@@ -15,8 +15,8 @@ public class ElectricCharacter extends Character implements Skillable {
 
     // ── Constructor ───────────────────────────
     // รับ stat ทุกตัวเป็น int (ยังไม่กำหนดตัวเลขจริง ๆ ตอนนี้)
-    public ElectricCharacter(int health, int damage, int damageBomb, int bombRange, int maxBombs) {
-        super(health, damage, damageBomb, bombRange, maxBombs, Element.ELECTRIC);
+    public ElectricCharacter(int health, int damage, int bombRange, int maxBombs) {
+        super(health, damage, bombRange, maxBombs, Element.ELECTRIC);
     }
 
     // ── Skillable methods ─────────────────────

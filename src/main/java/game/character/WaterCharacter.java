@@ -11,8 +11,8 @@ public class WaterCharacter extends Character implements Skillable {
     private long lastSkillUseTime = 0L;
 
     // ── Constructor ───────────────────────────
-    public WaterCharacter(int health, int damage, int damageBomb, int bombRange, int maxBombs) {
-        super(health, damage, damageBomb, bombRange, maxBombs, Element.WATER);
+    public WaterCharacter(int health, int damage, int bombRange, int maxBombs) {
+        super(health, damage, bombRange, maxBombs, Element.WATER);
         setCOOLDOWN_SECONDS(90);
     }
 

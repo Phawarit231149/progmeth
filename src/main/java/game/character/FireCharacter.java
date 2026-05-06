@@ -15,8 +15,8 @@ public class FireCharacter extends Character implements Skillable {
     private boolean teleportArmed = false;            // กดสกิลแล้ว รอเลือกช่อง
 
     // ── Constructor ───────────────────────────
-    public FireCharacter(int health, int damage, int damageBomb, int bombRange, int maxBombs) {
-        super(health, damage, damageBomb, bombRange, maxBombs, Element.FIRE);
+    public FireCharacter(int health, int damage, int bombRange, int maxBombs) {
+        super(health, damage, bombRange, maxBombs, Element.FIRE);
     }
 
     // ── Skillable methods ─────────────────────
