@@ -203,7 +203,7 @@ public class GameController extends StackPane {
 <<<<<<< HEAD
     // ── Load images safely (null ถ้าไม่เจอ) ─────────────
     private void loadImages() {
-        // Players — directional sprites (subfolder ตามชื่อ)
+        // Players — direc  tional sprites (subfolder ตามชื่อ)
         spongebobImgs   = loadDirectional("spongebob",   "Sponge",    "Front");
         patrickImgs     = loadDirectional("patrick",     "Patrick",   "Front");
         squidWardImgs   = loadDirectional("squidword",   "SquidWord", "Font");
