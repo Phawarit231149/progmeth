@@ -116,18 +116,24 @@ public class GameController extends StackPane {
     private boolean stopEnemy = false;
 
     // ── Images (โหลดจาก resources/) ────────────
-    private Image spongebobImg;
-    private Image patrickImg;
-    private Image squidWardImg;
+    // Player & enemy directional images: index 0=up(Back), 1=down(Front/Font), 2=left, 3=right
+    private Image[] spongebobImgs;
+    private Image[] patrickImgs;
+    private Image[] squidWardImgs;
     // enemy images
-    private Image npcImg;             // Easy enemy
-    private Image mrKrabImg;          // Medium FIRE
-    private Image garyImg;            // Medium WATER
-    private Image sandyImg;           // Medium ELECTRIC
-    private Image kingNeptuneImg;     // Hard enemy
-    private Image spawnImg;           // marker ของจุด spawn
+    private Image[] npcImgs;             // Easy enemy
+    private Image[] mrKrabImgs;          // Medium FIRE
+    private Image[] garyImgs;            // Medium WATER
+    private Image[] sandyImgs;           // Medium ELECTRIC
+    private Image[] kingNeptuneImgs;     // Hard enemy
+    private Image spawnImg;              // marker ของจุด spawn
     private Image rockImg;
-    private Image seaweedImg;
+    private Image woodEdgeImg;           // กรอบไม้รอบ tile ที่ player ยืน
+    private Image[] seaweedImgs;         // 2 frames สำหรับ animation
+    private int seaweedFrame = 0;        // 0 หรือ 1 — สลับทุก 0.5 วิ
+    private Timeline seaweedAnimTimer;
+    // ทิศทางหันของ player: 0=up, 1=down, 2=left, 3=right (default หันลง)
+    private int playerDir = 1;
     private Image bombImg;
     private Image maxBombImg;
     private Image bombRangeImg;
@@ -156,6 +162,7 @@ public class GameController extends StackPane {
         startTimer();
         startEnemyTimer();
         startSpawnTimer();
+        startSeaweedAnimation();   // ⭐️ เริ่ม animation seaweed (สลับเฟรมทุก 0.5 วิ)
 
         this.setFocusTraversable(true);
 
@@ -287,18 +294,28 @@ public class GameController extends StackPane {
 
     // ── Load images safely (null ถ้าไม่เจอ) ─────────────
     private void loadImages() {
-        spongebobImg = tryLoadImage("/images/gamePlay/spongebob.png");   // ใช้ชื่อไฟล์ตามที่ใส่ใน resources
-        patrickImg    = tryLoadImage("/images/gamePlay/patrick.png");
-        squidWardImg = tryLoadImage("/images/gamePlay/squidward.png");
-        // enemies
-        npcImg          = tryLoadImage("/images/gamePlay/npc.png");           // Easy
-        mrKrabImg       = tryLoadImage("/images/gamePlay/mrKrab.png");        // Medium FIRE
-        garyImg         = tryLoadImage("/images/gamePlay/gary.png");          // Medium WATER
-        sandyImg        = tryLoadImage("/images/gamePlay/sandy.png");         // Medium ELECTRIC
-        kingNeptuneImg  = tryLoadImage("/images/gamePlay/kingneptune.png");   // Hard
-        spawnImg        = tryLoadImage("/images/gamePlay/spawn.png");         // spawn marker
-        rockImg      = tryLoadImage("/images/gamePlay/rock.png");
-        seaweedImg   = tryLoadImage("/images/gamePlay/seaweed.png");
+        // Players — directional sprites (subfolder ตามชื่อ)
+        spongebobImgs   = loadDirectional("spongebob",   "Sponge",    "Front");
+        patrickImgs     = loadDirectional("patrick",     "Patrick",   "Front");
+        squidWardImgs   = loadDirectional("squidword",   "SquidWord", "Font");
+
+        // Enemies — directional sprites
+        npcImgs         = loadDirectional("npc",         "Npc",       "Font");  // Easy
+        mrKrabImgs      = loadDirectional("mrkrab",      "MrKrab",    "Font");  // Medium FIRE
+        garyImgs        = loadDirectional("gary",        "Gary",      "Font");  // Medium WATER
+        sandyImgs       = loadDirectional("sandy",       "Sandy",     "Font");  // Medium ELECTRIC
+        kingNeptuneImgs = loadDirectional("kingneptune", "KingNep",   "Front"); // Hard
+
+        spawnImg     = tryLoadImage("/images/gamePlay/spawn/spawn.png");
+        rockImg      = tryLoadImage("/images/gamePlay/rock/Rock.png");
+        woodEdgeImg  = tryLoadImage("/images/gamePlay/WoodEdge/WoodEdge.png");
+
+        // Seaweed: 2 frames for animation
+        seaweedImgs = new Image[]{
+                tryLoadImage("/images/gamePlay/seaweed/seaweed_0.png"),
+                tryLoadImage("/images/gamePlay/seaweed/seaweed_1.png")
+        };
+
         bombImg      = tryLoadImage("/images/gamePlay/bomb.png");
 
         maxBombImg = tryLoadImage("/images/buffIcon/increaseMaximumBomb.png");
@@ -306,6 +323,36 @@ public class GameController extends StackPane {
         bombDamageImg = tryLoadImage("/images/buffIcon/increaseBombDamage.png");
         bubbleShieldImg = tryLoadImage("/images/buffIcon/bubbleShield.png");
         healImg       = tryLoadImage("/images/buffIcon/heal.png");
+    }
+
+    /**
+     * โหลดรูป 4 ทิศทางของตัวละคร 1 ตัว
+     * index: 0=up(Back), 1=down(Front/Font), 2=left, 3=right
+     */
+    private Image[] loadDirectional(String folder, String prefix, String downSuffix) {
+        Image[] arr = new Image[4];
+        arr[0] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Back.png");
+        arr[1] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + downSuffix + ".png");
+        arr[2] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Left.png");
+        arr[3] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Right.png");
+        return arr;
+    }
+
+    /** เริ่ม timer สลับเฟรม seaweed ทุก 0.5 วินาที */
+    private void startSeaweedAnimation() {
+        seaweedAnimTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> {
+            seaweedFrame = 1 - seaweedFrame;
+            // re-render เฉพาะช่องที่มี seaweed ยังไม่ทำลาย
+            for (int r = 0; r < config.getRows(); r++) {
+                for (int c = 0; c < config.getCols(); c++) {
+                    if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
+                        styleCell(r, c);
+                    }
+                }
+            }
+        }));
+        seaweedAnimTimer.setCycleCount(Timeline.INDEFINITE);
+        seaweedAnimTimer.play();
     }
 
     private void loadAudio(){
@@ -351,6 +398,37 @@ public class GameController extends StackPane {
         iv.setFitHeight(size);
         iv.setPreserveRatio(true);
         return iv;
+    }
+
+    /**
+     * สร้าง graphic ของช่องที่ player ยืน:
+     * ใช้ WoodEdge.png เป็นกรอบรอบนอก แล้วซ้อนรูป player อยู่ตรงกลาง
+     * ทำให้ผู้เล่นเห็นชัดว่าตัวเองอยู่ช่องไหน
+     */
+    private StackPane makePlayerCellGraphic(Image playerImg) {
+        StackPane stack = new StackPane();
+
+        if (woodEdgeImg != null) {
+            ImageView edge = new ImageView(woodEdgeImg);
+            double frameSize = Math.max(cellSize - 2, 8);
+            edge.setFitWidth(frameSize);
+            edge.setFitHeight(frameSize);
+            edge.setPreserveRatio(false);
+            edge.setSmooth(false);
+            stack.getChildren().add(edge);
+        }
+
+        if (playerImg != null) {
+            ImageView pv = new ImageView(playerImg);
+            double playerSize = Math.max(cellSize - 14, 8);  // เล็กกว่ากรอบนิดหน่อย
+            pv.setFitWidth(playerSize);
+            pv.setFitHeight(playerSize);
+            pv.setPreserveRatio(true);
+            pv.setSmooth(false);
+            stack.getChildren().add(pv);
+        }
+
+        return stack;
     }
 
     // ── Create the player character ─────────────────────
@@ -679,26 +757,54 @@ public class GameController extends StackPane {
         return null;
     }
 
-    // เลือกรูปของ enemy ตาม Level + Element
+    // เลือกรูปของ enemy ตาม Level + Element + ทิศทาง (ใช้ currentDir)
     private Image enemyImage(Enemy e) {
+        int dir = clampDir(e.getCurrentDir());
+        Image[] set = npcImgs;  // default
         Level lvl = e.getLevel();
-        if (lvl == null) return npcImg;
-        switch (lvl) {
-            case EASY:
-                return npcImg;
-            case MEDIUM:
-                if (e.getElement() == null) return mrKrabImg;
-                switch (e.getElement()) {
-                    case FIRE:     return mrKrabImg;
-                    case WATER:    return garyImg;
-                    case ELECTRIC: return sandyImg;
-                    default:       return mrKrabImg;
-                }
-            case HARD:
-                return kingNeptuneImg;
-            default:
-                return npcImg;
+        if (lvl != null) {
+            switch (lvl) {
+                case EASY:
+                    set = npcImgs;
+                    break;
+                case MEDIUM:
+                    if (e.getElement() == null) {
+                        set = mrKrabImgs;
+                    } else {
+                        switch (e.getElement()) {
+                            case FIRE:     set = mrKrabImgs; break;
+                            case WATER:    set = garyImgs;   break;
+                            case ELECTRIC: set = sandyImgs;  break;
+                            default:       set = mrKrabImgs; break;
+                        }
+                    }
+                    break;
+                case HARD:
+                    set = kingNeptuneImgs;
+                    break;
+                default:
+                    set = npcImgs;
+            }
         }
+        return pickDirImage(set, dir);
+    }
+
+    /** เลือกรูปจาก array 4 ทิศ — ถ้ารูปทิศนั้นไม่มี ให้หาตัวอื่นเป็น fallback */
+    private Image pickDirImage(Image[] set, int dir) {
+        if (set == null) return null;
+        if (dir < 0 || dir > 3) dir = 1;
+        if (set[dir] != null) return set[dir];
+        // fallback: ลอง down ก่อน (ปกติเป็นหน้าเริ่มต้น) แล้วไล่ดูรูปอื่น
+        for (int d : new int[]{1, 0, 2, 3}) {
+            if (set[d] != null) return set[d];
+        }
+        return null;
+    }
+
+    private int clampDir(int dir) {
+        if (dir < 0 || dir > 3) return 1;
+        // Enemy dir mapping: 0=up, 1=down, 2=left, 3=right (ตรงกับ player)
+        return dir;
     }
 
     // เช็กว่า enemy เดินไปช่อง (r,c) ได้มั้ย
@@ -863,14 +969,20 @@ public class GameController extends StackPane {
 
     // ── Movement ────────────────────────────────────────
     private void tryMove(int dr, int dc) {
+        // อัปเดตทิศที่หันก่อน — ถึงเดินไม่ได้ก็ยังหันหน้าเปลี่ยนได้
+        if (dr == -1) playerDir = 0;          // up (W)
+        else if (dr == 1) playerDir = 1;      // down (S)
+        else if (dc == -1) playerDir = 2;     // left (A)
+        else if (dc == 1) playerDir = 3;      // right (D)
+
         int nr = playerRow + dr;
         int nc = playerCol + dc;
 
-        if (nr < 0 || nr >= config.getRows()) return;
-        if (nc < 0 || nc >= config.getCols()) return;
-        if (!map[nr][nc].isPassable()) return;          // ติด Rock
-        if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) return; // ติด Seaweed
-        if (hasBomb[nr][nc]) return;                    // ติด Bomb
+        if (nr < 0 || nr >= config.getRows()) { renderGrid(); return; }
+        if (nc < 0 || nc >= config.getCols()) { renderGrid(); return; }
+        if (!map[nr][nc].isPassable()) { renderGrid(); return; }          // ติด Rock
+        if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) { renderGrid(); return; } // ติด Seaweed
+        if (hasBomb[nr][nc]) { renderGrid(); return; }                    // ติด Bomb
 
         playerRow = nr;
         playerCol = nc;
@@ -946,9 +1058,11 @@ public class GameController extends StackPane {
 
         if (r == playerRow && c == playerCol) {
             Image playerImg = null;
-            if(name.equals("Patrick")){playerImg  = patrickImg  ;}
-            if(name.equals("Squidward")){playerImg = squidWardImg;}
-            if(name.equals("SpongeBob")){playerImg = spongebobImg;}
+            Image[] set = null;
+            if(name.equals("Patrick"))   { set = patrickImgs;   }
+            if(name.equals("Squidward")) { set = squidWardImgs; }
+            if(name.equals("SpongeBob")) { set = spongebobImgs; }
+            playerImg = pickDirImage(set, playerDir);
 
             // ⭐️ เช็ค Shield เพื่อกำหนด Style เส้นขอบ
             String playerStyle = baseStyle;
@@ -1011,9 +1125,15 @@ public class GameController extends StackPane {
             return;
         }
         if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
-            if (seaweedImg != null) {
+            // ใช้เฟรมที่กำลังแสดงอยู่ (สลับทุก 0.5 วิด้วย seaweedAnimTimer)
+            Image swImg = (seaweedImgs != null) ? seaweedImgs[seaweedFrame] : null;
+            if (swImg == null && seaweedImgs != null) {
+                // fallback: ลองอีกเฟรม
+                swImg = seaweedImgs[1 - seaweedFrame];
+            }
+            if (swImg != null) {
                 cell.setStyle(baseStyle);
-                cell.setGraphic(makeCellImage(seaweedImg));
+                cell.setGraphic(makeCellImage(swImg));
             } else {
                 cell.setStyle("-fx-background-color: #66bb6a; -fx-border-color: #2e7d32; -fx-font-weight: bold;");
                 cell.setText("W");

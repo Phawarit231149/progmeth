@@ -2,6 +2,7 @@ package gui;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -22,6 +23,7 @@ public class StageSelectController extends BorderPane {
 
     public StageSelectController() {
         initializeStageSelection(); // ✅ ต้องมาก่อน
+        setupBackground();
 
         Button back = new Button("X");
 
@@ -52,9 +54,9 @@ public class StageSelectController extends BorderPane {
 
         start.setDisable(true);
 
-        HBox hbox = new HBox(20);
+        HBox hbox = new HBox(15);
         hbox.setAlignment(Pos.BOTTOM_RIGHT);
-        hbox.setPadding(new Insets(10, 10, 10, 10));
+        hbox.setPadding(new Insets(10, 15, 8, 10));
         hbox.getChildren().addAll(rule, start);
 
         this.setTop(topPane);
@@ -65,15 +67,76 @@ public class StageSelectController extends BorderPane {
 
     private void initializeStageSelection() {
         stageTitle = new Label("Stage I");
-        stageTitle.setFont(Font.font(30));
+        stageTitle.setFont(pixelFont(24));
+    }
+
+    /** ใช้ SelectStageBG.png เป็นพื้นหลัง */
+    private void setupBackground() {
+        try {
+            Image bgImage = new Image(
+                    getClass().getResourceAsStream("/images/StageSelect/SelectStageBG.png")
+            );
+            BackgroundImage backgroundImage = new BackgroundImage(
+                    bgImage,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundPosition.CENTER,
+                    new BackgroundSize(
+                            BackgroundSize.AUTO, BackgroundSize.AUTO,
+                            false, false, true, true
+                    )
+            );
+            this.setBackground(new Background(backgroundImage));
+        } catch (Exception e) {
+            System.out.println("[StageSelect] Background load failed: " + e.getMessage());
+        }
+    }
+
+    /** โหลด pixel font จาก /Font/pixelFont.ttf — เรียกใช้เมื่อต้องการ font ทุกขนาด */
+    private Font pixelFont(double size) {
+        Font f = Font.loadFont(
+                getClass().getResourceAsStream("/font/pixelFont.TTF"), size
+        );
+        // ถ้าโหลดไม่สำเร็จให้ fallback เป็น default font ขนาดเดียวกัน
+        return f != null ? f : Font.font(size);
+    }
+
+    /** สร้าง Background ไม้ (BackStage.png) แบบ stretch เต็มกรอบ ให้ขอบไม้โผล่ตามขอบของ panel */
+    private Background createWoodBackground() {
+        try {
+            Image woodImage = new Image(
+                    getClass().getResourceAsStream("/images/StageSelect/BackStage.png")
+            );
+            BackgroundImage bgImg = new BackgroundImage(
+                    woodImage,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundPosition.CENTER,
+                    new BackgroundSize(
+                            1.0, 1.0,
+                            true, true,    // ใช้เป็น percentage
+                            false, false   // ไม่ contain ไม่ cover -> stretch เต็ม
+                    )
+            );
+            return new Background(bgImg);
+        } catch (Exception e) {
+            System.out.println("[StageSelect] Wood background not found");
+            return null;
+        }
     }
 
     private VBox stageSelectBar() {
         String[] labels = {"I", "II", "III", "IV", "V"};
         stageButtons = new Button[5];
 
-        VBox bar = new VBox(10);
-        bar.setPadding(new Insets(20, 10, 20, 30));
+        VBox bar = new VBox(3);
+        // padding ด้านในขอบไม้ — เผื่อพื้นที่ให้ขอบไม้โผล่
+        bar.setPadding(new Insets(12, 18, 12, 18));
+        bar.setAlignment(Pos.CENTER);
+        Background wood = createWoodBackground();
+        if (wood != null) bar.setBackground(wood);
+        // ใส่ margin ระหว่างกรอบไม้กับขอบ window
+        BorderPane.setMargin(bar, new Insets(5, 5, 5, 10));
 
         for (int i = 0; i < 5; i++) {
             final int index = i;
@@ -118,17 +181,20 @@ public class StageSelectController extends BorderPane {
 
     private VBox stageInformation() {
         VBox storyBox = new VBox(5);
-        Label storyTitle = new Label("Story");
-        storyTitle.setFont(Font.font(30));
-        Label storyDetail = new Label("กาลครั้งหนึ่งนานมาแล้ว...");
-        storyDetail.setFont(Font.font(20));
+        Label storyTitle = new Label("  Story");
+        storyTitle.setFont(pixelFont(26));
+        Label storyDetail = new Label(" SpongeBomb must blast through obstacles and tiny \n" +
+                " invaders to clear the grid before his five minute\n" +
+                " timer hits zero");
+
+        storyDetail.setFont(pixelFont(16));
         storyBox.getChildren().addAll(storyTitle, storyDetail);
 
         VBox infoBox = new VBox(5);
         Label infoTitle = new Label("Stage Details");
-        infoTitle.setFont(Font.font(30));
+        infoTitle.setFont(pixelFont(26));
         Label infoDetail = new Label(".\n.\n.\n.\n.\n.");
-        infoDetail.setFont(Font.font(20));
+        infoDetail.setFont(pixelFont(16));
         infoBox.getChildren().addAll(infoTitle, infoDetail);
 
         HBox characterBox = new HBox(15);
@@ -141,15 +207,20 @@ public class StageSelectController extends BorderPane {
         characterBox.getChildren().addAll(patrick, squidWard, spongeBob);
 
         Label choosingCharacter = new Label("Character :   None");
-        choosingCharacter.setFont(Font.font(20));
+        choosingCharacter.setFont(pixelFont(16));
 
         patrick.setOnAction(e -> handleCharacterSelect("Patrick",choosingCharacter,patrick));
         squidWard.setOnAction(e -> handleCharacterSelect("Squidward",choosingCharacter,squidWard));
         spongeBob.setOnAction(e -> handleCharacterSelect("SpongeBob",choosingCharacter,spongeBob));
 
-        VBox rightLayout = new VBox(20);
-        rightLayout.setPadding(new Insets(20, 40, 20, 0));
+        VBox rightLayout = new VBox(15);
+        rightLayout.setPadding(new Insets(22, 28, 22, 28));
         rightLayout.getChildren().addAll(storyBox, infoBox, characterBox, choosingCharacter);
+
+        // ใส่กรอบไม้ BackStage.png ให้กล่อง story/details/character
+        Background wood = createWoodBackground();
+        if (wood != null) rightLayout.setBackground(wood);
+        BorderPane.setMargin(rightLayout, new Insets(5, 10, 5, 5));
 
         return rightLayout;
     }
@@ -190,32 +261,77 @@ public class StageSelectController extends BorderPane {
     }
 
     private Button createSelectStageButton(String label, boolean unlocked) {
-        double btnSize = 70;
+        double btnSize = 60;
 
-        javafx.scene.shape.Circle ring = new javafx.scene.shape.Circle(btnSize / 2 + 3);
+        // ⭐️ รูป pixel art ของ stage (I, II, III, IV, V)
+        ImageView iv = new ImageView();
+        try {
+            Image img = new Image(
+                    getClass().getResourceAsStream("/images/StageSelect/" + label + ".png")
+            );
+            iv.setImage(img);
+            iv.setFitWidth(btnSize);
+            iv.setFitHeight(btnSize);
+            iv.setPreserveRatio(true);
+            iv.setSmooth(false);
+        } catch (Exception e) {
+            System.out.println("[StageSelect] Button image not found: " + label);
+        }
+
+        // ถ้ายังไม่ปลด lock — ทำให้รูปจางลง
+        if (!unlocked) {
+            iv.setOpacity(0.4);
+        }
+
+        // Ring แสดงว่า stage นี้ถูกเลือก
+        javafx.scene.shape.Circle ring = new javafx.scene.shape.Circle(btnSize / 2 + 4);
         ring.setFill(javafx.scene.paint.Color.TRANSPARENT);
         ring.setStroke(javafx.scene.paint.Color.TRANSPARENT);
         ring.setStrokeWidth(3);
 
-        Label text = new Label(unlocked ? label : "🔒");
-        text.setFont(Font.font(unlocked ? 16 : 18));
-        text.setTextFill(unlocked
-                ? javafx.scene.paint.Color.BLACK
-                : javafx.scene.paint.Color.web("#757575"));
+        StackPane graphic = new StackPane(ring, iv);
+        graphic.setPrefSize(btnSize + 12, btnSize + 12);
 
-        javafx.scene.shape.Circle bg = new javafx.scene.shape.Circle(btnSize / 2);
-        bg.setFill(unlocked
-                ? javafx.scene.paint.Color.web("#e0e0e0")
-                : javafx.scene.paint.Color.web("#bdbdbd"));
-
-        StackPane graphic = new StackPane(ring, bg, text);
-        graphic.setPrefSize(btnSize + 6, btnSize + 6);
+        // ถ้า lock ใส่ overlay 🔒 ทับรูป
+        if (!unlocked) {
+            Label lockLabel = new Label("🔒");
+            lockLabel.setFont(Font.font(28));
+            graphic.getChildren().add(lockLabel);
+        }
 
         Button btn = new Button();
         btn.setGraphic(graphic);
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-        btn.setStyle("-fx-background-color: transparent; -fx-padding: 0;");
+        btn.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-padding: 0;" +
+                "-fx-background-insets: 0;" +
+                "-fx-background-radius: 0;" +
+                "-fx-focus-color: transparent;" +
+                "-fx-faint-focus-color: transparent;"
+        );
         btn.setUserData(ring);
+
+        // hover/press scale effect (เฉพาะตอน unlock)
+        if (unlocked) {
+            btn.setOnMouseEntered(e -> {
+                btn.setScaleX(1.1);
+                btn.setScaleY(1.1);
+                btn.setCursor(Cursor.HAND);
+            });
+            btn.setOnMouseExited(e -> {
+                btn.setScaleX(1.0);
+                btn.setScaleY(1.0);
+            });
+            btn.setOnMousePressed(e -> {
+                btn.setScaleX(0.97);
+                btn.setScaleY(0.97);
+            });
+            btn.setOnMouseReleased(e -> {
+                btn.setScaleX(1.1);
+                btn.setScaleY(1.1);
+            });
+        }
 
         return btn;
     }
@@ -257,9 +373,58 @@ public class StageSelectController extends BorderPane {
     }
 
     private Button createFooterButton(String name) {
-        Button btn = new Button(name);
-        btn.setPrefSize(100, 50);
-        btn.setStyle("-fx-background-radius: 15;");
+        Button btn = new Button();
+        try {
+            Image img = new Image(
+                    getClass().getResourceAsStream("/images/StageSelect/" + name + ".png")
+            );
+            ImageView iv = new ImageView(img);
+            // กำหนดทั้ง fitWidth + fitHeight + preserveRatio เพื่อ cap ขนาดไม่ให้ใหญ่เกิน
+            iv.setFitWidth(210);
+            iv.setFitHeight(100);
+            iv.setPreserveRatio(true);
+            iv.setSmooth(false);
+            btn.setGraphic(iv);
+        } catch (Exception e) {
+            // fallback: text-only
+            btn.setText(name);
+            btn.setPrefSize(100, 50);
+        }
+
+        btn.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-padding: 0;" +
+                "-fx-background-insets: 0;" +
+                "-fx-background-radius: 0;" +
+                "-fx-focus-color: transparent;" +
+                "-fx-faint-focus-color: transparent;"
+        );
+
+        // hover/press effect
+        btn.setOnMouseEntered(e -> {
+            if (!btn.isDisabled()) {
+                btn.setScaleX(1.08);
+                btn.setScaleY(1.08);
+                btn.setCursor(Cursor.HAND);
+            }
+        });
+        btn.setOnMouseExited(e -> {
+            btn.setScaleX(1.0);
+            btn.setScaleY(1.0);
+        });
+        btn.setOnMousePressed(e -> {
+            if (!btn.isDisabled()) {
+                btn.setScaleX(0.96);
+                btn.setScaleY(0.96);
+            }
+        });
+        btn.setOnMouseReleased(e -> {
+            if (!btn.isDisabled()) {
+                btn.setScaleX(1.08);
+                btn.setScaleY(1.08);
+            }
+        });
+
         return btn;
     }
 }
