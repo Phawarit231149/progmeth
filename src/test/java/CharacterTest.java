@@ -55,40 +55,6 @@ public class CharacterTest {
     }
 
     @Test
-    void calculateDamageTest_fireCharacter() {
-        int damage_1 = fire.calculateDamage(Element.WATER);
-        int damage_2 = fire.calculateDamage(Element.FIRE);
-        int damage_3 = fire.calculateDamage(Element.ELECTRIC);
-
-        assertEquals(0,damage_1);
-        assertEquals(1,damage_2);
-        assertEquals(2,damage_3);
-
-    }
-
-    @Test
-    void calculateDamageTest_waterCharacter() {
-        int damage_1 = water.calculateDamage(Element.ELECTRIC);
-        int damage_2 = water.calculateDamage(Element.WATER);
-        int damage_3 = water.calculateDamage(Element.FIRE);
-
-        assertEquals(0,damage_1);
-        assertEquals(1,damage_2);
-        assertEquals(2,damage_3);
-    }
-
-    @Test
-    void calculateDamageTest_electricCharacter() {
-        int damage_1 = electric.calculateDamage(Element.FIRE);
-        int damage_2 = electric.calculateDamage(Element.ELECTRIC);
-        int damage_3 = electric.calculateDamage(Element.WATER);
-
-        assertEquals(0,damage_1);
-        assertEquals(1,damage_2);
-        assertEquals(2,damage_3);
-    }
-
-    @Test
     void isStrongAgainstTest_fireCharacter() {
         boolean bool_1 = fire.isStrongAgainst(Element.NONE);
         boolean bool_2 = fire.isStrongAgainst(Element.ELECTRIC);

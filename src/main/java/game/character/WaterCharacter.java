@@ -13,7 +13,7 @@ public class WaterCharacter extends Character implements Skillable {
     // ── Constructor ───────────────────────────
     public WaterCharacter(int health, int damage, int bombRange, int maxBombs) {
         super(health, damage, bombRange, maxBombs, Element.WATER);
-        setCOOLDOWN_SECONDS(90);
+        setCooldownSeconds(90);
     }
 
     // ── Skillable methods ─────────────────────

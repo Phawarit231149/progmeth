@@ -2,178 +2,126 @@ package game.character;
 
 import game.Element;
 
-import java.util.Timer;
-
+/**
+ * Base class for player characters.
+ *
+ * Element triangle:  FIRE > ELECTRIC > WATER > FIRE
+ * Skill cooldown is managed here; concrete skills live in subclasses.
+ */
 public abstract class Character implements Skillable {
 
-    // Stats
     protected int health;
     protected int maxHealth;
     protected int damage;
-    //protected int damageBomb;
     protected int bombRange;
     protected int maxBombs;
     protected boolean haveShield;
-    private int COOLDOWN_SECONDS;
-    private long lastSkillUseTime = 0L;
+    protected Element element;
 
-    // Position
     protected int posX;
     protected int posY;
 
-    // Element
-    protected Element element;
+    private int  cooldownSeconds;
+    private long lastSkillUseTime = 0L;
 
-    public Character(int health, int damage,
-                     int bombRange, int maxBombs, Element element) {
+    protected Character(int health, int damage, int bombRange,
+                        int maxBombs, Element element) {
         this.health     = health;
         this.maxHealth  = health;
         this.damage     = damage;
-        //this.damageBomb = damageBomb;
         this.bombRange  = bombRange;
         this.maxBombs   = maxBombs;
         this.haveShield = false;
         this.element    = element;
     }
 
-    // ── รับดาเมจ ──────────────────────────────
-    public void takeDamage(int incomingDamage) {
-        if (haveShield) {
-            haveShield = false; // shield หายไป 1 ครั้ง
-            return;             // ไม่โดนดาเมจ
-        }
-        health -= incomingDamage;
-        if (health < 0) health = 0;
+    // ── Damage ────────────────────────────────────────────────────────────
+
+    public void takeDamage(int amount) {
+        if (haveShield) { haveShield = false; return; }
+        health = Math.max(0, health - amount);
     }
 
-    public int calculateDamage(Element enemyElement) {
-        if (isWeakAgainst(enemyElement)) {
-            return damage / 2; // อ่อนแอ → ดาเมจครึ่งนึง
-        }
-        if (isStrongAgainst(enemyElement)) {
-            return damage * 2; // แข็งแกร่ง → ดาเมจสองเท่า
-        }
-        return damage; // เท่ากัน → ดาเมจปกติ
+    // ── Skill (subclasses override) ───────────────────────────────────────
+
+    @Override public void useSkill() {}
+    public boolean isTeleportArmed() { return false; }
+
+    // ── Skill cooldown helpers ────────────────────────────────────────────
+
+    @Override
+    public boolean isSkillReady() {
+        return (System.currentTimeMillis() - lastSkillUseTime)
+                >= (long) getCooldown() * 1000L;
     }
 
-    // ── ตรวจสอบ element ───────────────────────
+    @Override
+    public long getLastSkillUseTime() { return lastSkillUseTime; }
+
+    protected void recordSkillUse() {
+        lastSkillUseTime = System.currentTimeMillis();
+    }
+
+    public int getRemainingCooldown() {
+        long elapsed = System.currentTimeMillis() - lastSkillUseTime;
+        long cooldownMs = (long) getCooldown() * 1000L;
+        return elapsed >= cooldownMs ? 0 : (int) ((cooldownMs - elapsed) / 1000);
+    }
+
+    // ── Element helpers ───────────────────────────────────────────────────
+
     public boolean isStrongAgainst(Element other) {
-        return (element == Element.FIRE    && other == Element.ELECTRIC)    ||
-                (element == Element.WATER   && other == Element.FIRE) ||
-                (element == Element.ELECTRIC && other == Element.WATER) ||
-                (other == Element.NONE);
+        return (element == Element.FIRE     && other == Element.ELECTRIC) ||
+                (element == Element.WATER    && other == Element.FIRE)     ||
+                (element == Element.ELECTRIC && other == Element.WATER)    ||
+                (other   == Element.NONE);
     }
 
     public boolean isWeakAgainst(Element other) {
-        return (element == Element.FIRE    && other == Element.WATER) ||
-                (element == Element.WATER   && other == Element.ELECTRIC)     ||
+        return (element == Element.FIRE     && other == Element.WATER)    ||
+                (element == Element.WATER    && other == Element.ELECTRIC) ||
                 (element == Element.ELECTRIC && other == Element.FIRE);
     }
 
-    public int getRemainingCoolDown(){
-        long now = System.currentTimeMillis();
-        long timeElapsed = now - lastSkillUseTime;
-        long cooldownMs = getCooldown() * 1000L;
+    // ── Buff helpers ──────────────────────────────────────────────────────
 
-        if (timeElapsed >= cooldownMs) return 0;
-
-        // Calculate remaining seconds
-        return (int) ((cooldownMs - timeElapsed) / 1000);
-    }
-
-    public void useSkill(){}
-    public boolean isTeleportArmed(){return false;}
-    // ── รับดาเมจจาก element ───────────────────
-    // ใช้ตอน enemy โจมตีเรา (enemy ไม่มี element)
-    public void takeDamageFromEnemy(int baseDamage) {
-        takeDamage(baseDamage); // ปกติ 1 heart
-    }
-
-    // ── Getters ───────────────────────────────
-    public int getHealth()      { return health; }
-    public int getMaxHealth()   { return maxHealth; }
-    public int getDamage()      { return damage; }
-    //public int getDamageBomb()  { return damageBomb; }
-    public int getBombRange()   { return bombRange; }
-    public int getMaxBombs()    { return maxBombs; }
-    public boolean hasShield()  { return haveShield; }
-    public int getPosX()        { return posX; }
-    public int getPosY()        { return posY; }
-    public Element getElement() { return element; }
-
-    // ── Setters ───────────────────────────────
-    public void setPos(int x, int y) { posX = x; posY = y; }
-    public void setShield(boolean s) { haveShield = s; }
-    public boolean isAlive()         { return health > 0; }
-
-    public void setCOOLDOWN_SECONDS(int COOLDOWN_SECONDS) {
-        this.COOLDOWN_SECONDS = COOLDOWN_SECONDS;
-    }
-
-    public void setHealth(int health) {
-        this.health = health;
-    }
-
-    public void setMaxHealth(int maxHealth) {
-        this.maxHealth = maxHealth;
-    }
-
-    public void setDamage(int damage) {
-        this.damage = damage;
-    }
-
-    /*
-    public void setDamageBomb(int damageBomb) {
-        this.damageBomb = damageBomb;
-    }
-     */
-
-    public void setBombRange(int bombRange) {
-        this.bombRange = bombRange;
-    }
-
-    public void setMaxBombs(int maxBombs) {
-        this.maxBombs = maxBombs;
-    }
-
-    public void setHaveShield(boolean haveShield) {
-        this.haveShield = haveShield;
-    }
-
-    public void setPosX(int posX) {
-        this.posX = posX;
-    }
-
-    public void setPosY(int posY) {
-        this.posY = posY;
-    }
-
-    public void setElement(Element element) {
-        this.element = element;
-    }
-
-    // ── Buff helpers ──────────────────────────
-    // เพิ่ม health (cap ที่ maxHealth ไม่ให้เกิน)
     public void heal(int amount) {
-        health += amount;
-        if (health > maxHealth) health = maxHealth;
+        health = Math.min(maxHealth, health + amount);
     }
 
-    // เพิ่ม bomb range
-    public void increaseBombRange(int amount) {
-        bombRange += amount;
-    }
+    public void increaseBombRange(int amount)  { bombRange += amount; }
+    public void increaseBombDamage(int amount) { damage    += amount; }
+    public void increaseMaxBombs(int amount)   { maxBombs  += amount; }
 
-    // เพิ่ม damage ของระเบิด
-    public void increaseBombDamage(int amount) {
-        damage += amount;
-    }
+    // ── Getters ───────────────────────────────────────────────────────────
 
-    // เพิ่มจำนวนระเบิดที่ถือได้สูงสุด
-    public void increaseMaxBombs(int amount) {
-        maxBombs += amount;
-    }
+    public int     getHealth()    { return health; }
+    public int     getMaxHealth() { return maxHealth; }
+    public int     getDamage()    { return damage; }
+    public int     getBombRange() { return bombRange; }
+    public int     getMaxBombs()  { return maxBombs; }
+    public boolean hasShield()    { return haveShield; }
+    public int     getPosX()      { return posX; }
+    public int     getPosY()      { return posY; }
+    public Element getElement()   { return element; }
+    public boolean isAlive()      { return health > 0; }
 
-    // ── Abstract ──────────────────────────────
+    // ── Setters ───────────────────────────────────────────────────────────
+
+    public void setPos(int x, int y)        { posX = x; posY = y; }
+    public void setShield(boolean s)        { haveShield = s; }
+    public void setHealth(int h)            { health    = Math.max(0, h); }
+    public void setMaxHealth(int h)         { maxHealth = h; }
+    public void setDamage(int d)            { damage    = d; }
+    public void setBombRange(int r)         { bombRange = r; }
+    public void setMaxBombs(int m)          { maxBombs  = m; }
+    public void setCooldownSeconds(int s)   { cooldownSeconds = s; }
+    public void setHaveShield(boolean s)    { haveShield = s; }
+    public void setPosX(int x)             { posX = x; }
+    public void setPosY(int y)             { posY = y; }
+    public void setElement(Element e)      { element = e; }
+
+    // ── Abstract ──────────────────────────────────────────────────────────
+
     public abstract String getDescription();
 }
