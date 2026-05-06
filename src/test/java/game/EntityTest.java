@@ -1,10 +1,9 @@
-import game.Element;
+package game;
+
 import game.entity.EasyEnemy;
 import game.entity.HardEnemy;
 import game.entity.MediumEnemy;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class EntityTest {
     private EasyEnemy easy;

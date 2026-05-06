@@ -1,3 +1,5 @@
+package game.util;
+
 import game.util.ScoreManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

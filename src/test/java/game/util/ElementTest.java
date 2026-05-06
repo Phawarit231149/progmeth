@@ -1,3 +1,5 @@
+package game.util;
+
 import game.Element;
 import game.character.ElectricCharacter;
 import game.character.FireCharacter;

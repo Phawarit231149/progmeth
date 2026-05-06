@@ -1,3 +1,5 @@
+package game;
+
 import game.buff.*;
 import game.map.Rock;
 import game.map.Seaweed;

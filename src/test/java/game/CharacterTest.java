@@ -1,9 +1,9 @@
-import game.Element;
+package game;
+
 import game.buff.ShieldBuff;
 import game.character.ElectricCharacter;
 import game.character.FireCharacter;
 import game.character.WaterCharacter;
-import game.entity.EasyEnemy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

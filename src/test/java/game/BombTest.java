@@ -1,3 +1,5 @@
+package game;
+
 import game.bomb.Bomb;
 import game.character.Character;
 import game.character.FireCharacter;
