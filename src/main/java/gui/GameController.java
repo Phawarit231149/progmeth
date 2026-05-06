@@ -97,25 +97,23 @@ public class GameController extends StackPane {
     private Timeline enemyTimer;
     private Timeline spawnTimer;
 
-<<<<<<< HEAD
-    // ── Images (โหลดจาก resources/) ────────────
-    // Player & enemy directional images: index 0=up(Back), 1=down(Front/Font), 2=left, 3=right
+    // ── Images — directional sprites: index 0=up(Back), 1=down(Front), 2=left, 3=right ──
     private Image[] spongebobImgs;
     private Image[] patrickImgs;
     private Image[] squidWardImgs;
-    // enemy images
+    // Enemy images
     private Image[] npcImgs;             // Easy enemy
     private Image[] mrKrabImgs;          // Medium FIRE
     private Image[] garyImgs;            // Medium WATER
     private Image[] sandyImgs;           // Medium ELECTRIC
     private Image[] kingNeptuneImgs;     // Hard enemy
-    private Image spawnImg;              // marker ของจุด spawn
+    private Image spawnImg;
     private Image rockImg;
-    private Image woodEdgeImg;           // กรอบไม้รอบ tile ที่ player ยืน
-    private Image[] seaweedImgs;         // 2 frames สำหรับ animation
-    private int seaweedFrame = 0;        // 0 หรือ 1 — สลับทุก 0.5 วิ
+    private Image woodEdgeImg;           // frame around the player's tile
+    private Image[] seaweedImgs;         // 2 frames for animation
+    private int seaweedFrame = 0;        // 0 or 1 — toggled every 0.5 s
     private Timeline seaweedAnimTimer;
-    // ทิศทางหันของ player: 0=up, 1=down, 2=left, 3=right (default หันลง)
+    // Player facing direction: 0=up, 1=down, 2=left, 3=right (default facing down)
     private int playerDir = 1;
     private Image bombImg;
     private Image maxBombImg;
@@ -123,11 +121,10 @@ public class GameController extends StackPane {
     private Image bombDamageImg;
     private Image bubbleShieldImg;
     private Image healImg;
-=======
+
     // ── Popups ────────────────────────────────────────────────────────────
     private Stage infoPopup;
     private Stage pausePopup;
->>>>>>> 93ac0c839b173038d6ea823533acfa4edaf0816f
 
     // ── Enemies ───────────────────────────────────────────────────────────
     private List<Enemy> enemies      = new ArrayList<>();
@@ -137,12 +134,6 @@ public class GameController extends StackPane {
 
     private static final int[] DR = {-1, 1,  0, 0};
     private static final int[] DC = { 0, 0, -1, 1};
-
-    // ── Images ────────────────────────────────────────────────────────────
-    private Image spongebobImg, patrickImg, squidWardImg;
-    private Image npcImg, mrKrabImg, garyImg, sandyImg, kingNeptuneImg, spawnImg;
-    private Image rockImg, seaweedImg, bombImg;
-    private Image maxBombImg, bombRangeImg, bombDamageImg, bubbleShieldImg, healImg;
 
     // ── Audio ─────────────────────────────────────────────────────────────
     private AudioClip explodeSfx;
@@ -173,7 +164,7 @@ public class GameController extends StackPane {
         startTimer();
         startEnemyTimer();
         startSpawnTimer();
-        startSeaweedAnimation();   // ⭐️ เริ่ม animation seaweed (สลับเฟรมทุก 0.5 วิ)
+        startSeaweedAnimation();
 
         this.setFocusTraversable(true);
         this.setOnKeyPressed(event -> {
@@ -200,20 +191,22 @@ public class GameController extends StackPane {
         });
     }
 
-<<<<<<< HEAD
-    // ── Load images safely (null ถ้าไม่เจอ) ─────────────
+    // ═══════════════════════════════════════════════════════════════════════
+    // INITIALISATION
+    // ═══════════════════════════════════════════════════════════════════════
+
     private void loadImages() {
-        // Players — direc  tional sprites (subfolder ตามชื่อ)
+        // Players — directional sprites
         spongebobImgs   = loadDirectional("spongebob",   "Sponge",    "Front");
         patrickImgs     = loadDirectional("patrick",     "Patrick",   "Front");
         squidWardImgs   = loadDirectional("squidword",   "SquidWord", "Font");
 
         // Enemies — directional sprites
-        npcImgs         = loadDirectional("npc",         "Npc",       "Font");  // Easy
-        mrKrabImgs      = loadDirectional("mrkrab",      "MrKrab",    "Font");  // Medium FIRE
-        garyImgs        = loadDirectional("gary",        "Gary",      "Font");  // Medium WATER
-        sandyImgs       = loadDirectional("sandy",       "Sandy",     "Font");  // Medium ELECTRIC
-        kingNeptuneImgs = loadDirectional("kingneptune", "KingNep",   "Front"); // Hard
+        npcImgs         = loadDirectional("npc",         "Npc",       "Font");
+        mrKrabImgs      = loadDirectional("mrkrab",      "MrKrab",    "Font");
+        garyImgs        = loadDirectional("gary",        "Gary",      "Font");
+        sandyImgs       = loadDirectional("sandy",       "Sandy",     "Font");
+        kingNeptuneImgs = loadDirectional("kingneptune", "KingNep",   "Front");
 
         spawnImg     = tryLoadImage("/images/gamePlay/spawn/spawn.png");
         rockImg      = tryLoadImage("/images/gamePlay/rock/Rock.png");
@@ -225,25 +218,6 @@ public class GameController extends StackPane {
                 tryLoadImage("/images/gamePlay/seaweed/seaweed_1.png")
         };
 
-        bombImg      = tryLoadImage("/images/gamePlay/bomb.png");
-=======
-    // ═══════════════════════════════════════════════════════════════════════
-    // INITIALISATION
-    // ═══════════════════════════════════════════════════════════════════════
->>>>>>> 93ac0c839b173038d6ea823533acfa4edaf0816f
-
-    private void loadImages() {
-        spongebobImg   = tryLoadImage("/images/gamePlay/spongebob.png");
-        patrickImg     = tryLoadImage("/images/gamePlay/patrick.png");
-        squidWardImg   = tryLoadImage("/images/gamePlay/squidward.png");
-        npcImg         = tryLoadImage("/images/gamePlay/npc.png");
-        mrKrabImg      = tryLoadImage("/images/gamePlay/mrKrab.png");
-        garyImg        = tryLoadImage("/images/gamePlay/gary.png");
-        sandyImg       = tryLoadImage("/images/gamePlay/sandy.png");
-        kingNeptuneImg = tryLoadImage("/images/gamePlay/kingneptune.png");
-        spawnImg       = tryLoadImage("/images/gamePlay/spawn.png");
-        rockImg        = tryLoadImage("/images/gamePlay/rock.png");
-        seaweedImg     = tryLoadImage("/images/gamePlay/seaweed.png");
         bombImg        = tryLoadImage("/images/gamePlay/bomb.png");
         maxBombImg     = tryLoadImage("/images/buffIcon/increaseMaximumBomb.png");
         bombRangeImg   = tryLoadImage("/images/buffIcon/increaseBombRange.png");
@@ -252,9 +226,8 @@ public class GameController extends StackPane {
         healImg        = tryLoadImage("/images/buffIcon/heal.png");
     }
 
-<<<<<<< HEAD
     /**
-     * โหลดรูป 4 ทิศทางของตัวละคร 1 ตัว
+     * Loads 4-directional sprites for one character.
      * index: 0=up(Back), 1=down(Front/Font), 2=left, 3=right
      */
     private Image[] loadDirectional(String folder, String prefix, String downSuffix) {
@@ -266,11 +239,10 @@ public class GameController extends StackPane {
         return arr;
     }
 
-    /** เริ่ม timer สลับเฟรม seaweed ทุก 0.5 วินาที */
+    /** Starts the timer that alternates seaweed frames every 0.5 seconds. */
     private void startSeaweedAnimation() {
         seaweedAnimTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> {
             seaweedFrame = 1 - seaweedFrame;
-            // re-render เฉพาะช่องที่มี seaweed ยังไม่ทำลาย
             for (int r = 0; r < config.getRows(); r++) {
                 for (int c = 0; c < config.getCols(); c++) {
                     if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
@@ -283,10 +255,7 @@ public class GameController extends StackPane {
         seaweedAnimTimer.play();
     }
 
-    private void loadAudio(){
-=======
     private void loadAudio() {
->>>>>>> 93ac0c839b173038d6ea823533acfa4edaf0816f
         explodeSfx = tryLoadAudio("/sounds/explosion.mp3");
     }
 
@@ -312,11 +281,10 @@ public class GameController extends StackPane {
         }
     }
 
-<<<<<<< HEAD
-    // ── สร้าง ImageView ขนาดพอดี cell ─────────────────
+    /** Creates an ImageView sized to fit inside a cell. */
     private ImageView makeCellImage(Image img) {
         ImageView iv = new ImageView(img);
-        double size = Math.max(cellSize - 4, 8);  // เผื่อขอบนิดหน่อย
+        double size = Math.max(cellSize - 4, 8);
         iv.setFitWidth(size);
         iv.setFitHeight(size);
         iv.setPreserveRatio(true);
@@ -324,9 +292,8 @@ public class GameController extends StackPane {
     }
 
     /**
-     * สร้าง graphic ของช่องที่ player ยืน:
-     * ใช้ WoodEdge.png เป็นกรอบรอบนอก แล้วซ้อนรูป player อยู่ตรงกลาง
-     * ทำให้ผู้เล่นเห็นชัดว่าตัวเองอยู่ช่องไหน
+     * Creates the graphic for the player's tile:
+     * WoodEdge.png as an outer frame with the player sprite centred on top.
      */
     private StackPane makePlayerCellGraphic(Image playerImg) {
         StackPane stack = new StackPane();
@@ -343,7 +310,7 @@ public class GameController extends StackPane {
 
         if (playerImg != null) {
             ImageView pv = new ImageView(playerImg);
-            double playerSize = Math.max(cellSize - 14, 8);  // เล็กกว่ากรอบนิดหน่อย
+            double playerSize = Math.max(cellSize - 14, 8);
             pv.setFitWidth(playerSize);
             pv.setFitHeight(playerSize);
             pv.setPreserveRatio(true);
@@ -354,9 +321,6 @@ public class GameController extends StackPane {
         return stack;
     }
 
-    // ── Create the player character ─────────────────────
-=======
->>>>>>> 93ac0c839b173038d6ea823533acfa4edaf0816f
     private void createPlayer() {
         player = switch (element) {
             case FIRE     -> new FireCharacter(5, 1, 1, 5);
@@ -396,7 +360,6 @@ public class GameController extends StackPane {
             }
         }
 
-        // Guarantee at least one of each buff type somewhere on the map
         Class<?>[] guaranteed = { MaxBombBuff.class, BombRangeBuff.class,
                 BombDamageBuff.class, HealBuff.class, ShieldBuff.class };
         for (Class<?> type : guaranteed) {
@@ -426,7 +389,7 @@ public class GameController extends StackPane {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // SKILL HANDLING  (extracted from the giant case-K block)
+    // SKILL HANDLING
     // ═══════════════════════════════════════════════════════════════════════
 
     private void handleSkillKey() {
@@ -498,7 +461,7 @@ public class GameController extends StackPane {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // SHIELD BADGE  (replaces 5 duplicated inline-style blocks)
+    // SHIELD BADGE
     // ═══════════════════════════════════════════════════════════════════════
 
     private void activateShieldBadge() {
@@ -518,13 +481,19 @@ public class GameController extends StackPane {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void tryMove(int dr, int dc) {
+        // Update facing direction even if the move is blocked
+        if      (dr == -1) playerDir = 0;
+        else if (dr ==  1) playerDir = 1;
+        else if (dc == -1) playerDir = 2;
+        else if (dc ==  1) playerDir = 3;
+
         int nr = playerRow + dr;
         int nc = playerCol + dc;
-        if (nr < 0 || nr >= config.getRows()) return;
-        if (nc < 0 || nc >= config.getCols()) return;
-        if (!map[nr][nc].isPassable()) return;
-        if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) return;
-        if (hasBomb[nr][nc]) return;
+        if (nr < 0 || nr >= config.getRows()) { renderGrid(); return; }
+        if (nc < 0 || nc >= config.getCols()) { renderGrid(); return; }
+        if (!map[nr][nc].isPassable()) { renderGrid(); return; }
+        if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) { renderGrid(); return; }
+        if (hasBomb[nr][nc]) { renderGrid(); return; }
 
         playerRow = nr;
         playerCol = nc;
@@ -583,7 +552,6 @@ public class GameController extends StackPane {
 
         if (bombsLeft < maxBombs && explodeSfx != null) SoundManager.playSFX(explodeSfx);
 
-        // Build blast zone
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 if (!hasBomb[r][c]) continue;
@@ -607,7 +575,6 @@ public class GameController extends StackPane {
                         }
                     }
                 }
-                // Bomb is on player's tile
                 if (!playerHit && r == playerRow && c == playerCol) {
                     playerHit = true;
                     applyBlastDamageToPlayer();
@@ -617,7 +584,6 @@ public class GameController extends StackPane {
 
         applyBlastDamageToEnemies(blastZone);
 
-        // Reset bombs
         for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
                 hasBomb[r][c] = false;
@@ -831,108 +797,6 @@ public class GameController extends StackPane {
         enemyTimer.play();
     }
 
-<<<<<<< HEAD
-    // คืน Enemy ที่อยู่ตำแหน่ง (r,c) — ไม่มี → null
-    private Enemy enemyAt(int r, int c) {
-        for (Enemy e : enemies) {
-            if (enemyOccupiesTile(e, r, c)) return e;
-        }
-        return null;
-    }
-
-    // เลือกรูปของ enemy ตาม Level + Element + ทิศทาง (ใช้ currentDir)
-    private Image enemyImage(Enemy e) {
-        int dir = clampDir(e.getCurrentDir());
-        Image[] set = npcImgs;  // default
-        Level lvl = e.getLevel();
-        if (lvl != null) {
-            switch (lvl) {
-                case EASY:
-                    set = npcImgs;
-                    break;
-                case MEDIUM:
-                    if (e.getElement() == null) {
-                        set = mrKrabImgs;
-                    } else {
-                        switch (e.getElement()) {
-                            case FIRE:     set = mrKrabImgs; break;
-                            case WATER:    set = garyImgs;   break;
-                            case ELECTRIC: set = sandyImgs;  break;
-                            default:       set = mrKrabImgs; break;
-                        }
-                    }
-                    break;
-                case HARD:
-                    set = kingNeptuneImgs;
-                    break;
-                default:
-                    set = npcImgs;
-            }
-        }
-        return pickDirImage(set, dir);
-    }
-
-    /** เลือกรูปจาก array 4 ทิศ — ถ้ารูปทิศนั้นไม่มี ให้หาตัวอื่นเป็น fallback */
-    private Image pickDirImage(Image[] set, int dir) {
-        if (set == null) return null;
-        if (dir < 0 || dir > 3) dir = 1;
-        if (set[dir] != null) return set[dir];
-        // fallback: ลอง down ก่อน (ปกติเป็นหน้าเริ่มต้น) แล้วไล่ดูรูปอื่น
-        for (int d : new int[]{1, 0, 2, 3}) {
-            if (set[d] != null) return set[d];
-        }
-        return null;
-    }
-
-    private int clampDir(int dir) {
-        if (dir < 0 || dir > 3) return 1;
-        // Enemy dir mapping: 0=up, 1=down, 2=left, 3=right (ตรงกับ player)
-        return dir;
-    }
-
-    // เช็กว่า enemy เดินไปช่อง (r,c) ได้มั้ย
-    //   - ต้องอยู่ในแผนที่
-    //   - ห้ามเป็น Rock / Seaweed (ที่ยังไม่ทำลาย) / ระเบิด / ตัว enemy อื่น
-    private boolean canEnemyWalk(int r, int c, Enemy self) {
-        if (r < 0 || r >= config.getRows()) return false;
-        if (c < 0 || c >= config.getCols()) return false;
-        if (map[r][c] instanceof Rock) return false;
-        if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) return false;
-        if (hasBomb[r][c]) return false;
-        for (Enemy other : enemies) {
-            if (other == self) continue;
-            if (enemyOccupiesTile(other, r, c)) return false;
-        }
-        return true;
-    }
-
-    // เช็กว่า Hard เดินไป "anchor" (r,c) ได้มั้ย — ต้องเช็ก 2×2 area
-    private boolean canHardWalk(int newR, int newC, Enemy self) {
-        int rows = config.getRows();
-        int cols = config.getCols();
-        if (newR < 0 || newR + 1 >= rows) return false;
-        if (newC < 0 || newC + 1 >= cols) return false;
-        for (int dr = 0; dr < 2; dr++) {
-            for (int dc = 0; dc < 2; dc++) {
-                int rr = newR + dr;
-                int cc = newC + dc;
-                if (map[rr][cc] instanceof Rock) return false;
-                if (seaweeds[rr][cc] != null && !seaweeds[rr][cc].isDestroyed()) return false;
-                if (hasBomb[rr][cc]) return false;
-                for (Enemy other : enemies) {
-                    if (other == self) continue;
-                    if (enemyOccupiesTile(other, rr, cc)) return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    // ── Logic การเดินของ enemy (dispatcher) ──
-    //   Easy / Medium → เดินสุ่ม (logic เดิม: ตรงไปก่อน → เลี้ยว → ถอยหลัง)
-    //   Hard         → ไล่ตาม player (เลือกทิศที่ใกล้ player ที่สุด)
-=======
->>>>>>> 93ac0c839b173038d6ea823533acfa4edaf0816f
     private void moveEnemy(Enemy e) {
         if (stopEnemy) return;
         if (e.getLevel() == Level.HARD) moveHardFollowPlayer(e);
@@ -944,7 +808,12 @@ public class GameController extends StackPane {
         int r = e.getPosY(), c = e.getPosX();
 
         int nr = r + DR[dir], nc = c + DC[dir];
-        if (canEnemyWalk(nr, nc, e)) { e.setPosY(nr); e.setPosX(nc); return; }
+        if (canEnemyWalk(nr, nc, e)) {
+            e.setCurrentDir(dir);
+            e.setPosY(nr);
+            e.setPosX(nc);
+            return;
+        }
 
         int reverse = dir ^ 1;
         List<Integer> options = new ArrayList<>();
@@ -971,7 +840,7 @@ public class GameController extends StackPane {
         int bestDir = -1, bestDist = Integer.MAX_VALUE;
 
         int[] order = {0, 1, 2, 3};
-        for (int i = 3; i > 0; i--) { // Fisher-Yates shuffle
+        for (int i = 3; i > 0; i--) {
             int j = (int)(Math.random() * (i + 1));
             int t = order[i]; order[i] = order[j]; order[j] = t;
         }
@@ -994,10 +863,11 @@ public class GameController extends StackPane {
 
     private boolean enemyOccupiesTile(Enemy e, int r, int c) {
         int er = e.getPosY(), ec = e.getPosX();
-        if (e.getLevel() == Level.HARD) return (r==er||r==er+1) && (c==ec||c==ec+1);
+        if (e.getLevel() == Level.HARD) return (r == er || r == er + 1) && (c == ec || c == ec + 1);
         return r == er && c == ec;
     }
 
+    /** Returns the enemy occupying tile (r,c), or null if none. */
     private Enemy enemyAt(int r, int c) {
         for (Enemy e : enemies) if (enemyOccupiesTile(e, r, c)) return e;
         return null;
@@ -1014,10 +884,10 @@ public class GameController extends StackPane {
 
     private boolean canHardWalk(int nr, int nc, Enemy self) {
         int rows = config.getRows(), cols = config.getCols();
-        if (nr < 0 || nr+1 >= rows || nc < 0 || nc+1 >= cols) return false;
+        if (nr < 0 || nr + 1 >= rows || nc < 0 || nc + 1 >= cols) return false;
         for (int dr = 0; dr < 2; dr++)
             for (int dc = 0; dc < 2; dc++)
-                if (!canEnemyWalk(nr+dr, nc+dc, self)) return false;
+                if (!canEnemyWalk(nr + dr, nc + dc, self)) return false;
         return true;
     }
 
@@ -1034,7 +904,7 @@ public class GameController extends StackPane {
     private boolean canHardOccupy(int r, int c) {
         for (int dr = 0; dr < 2; dr++)
             for (int dc = 0; dc < 2; dc++)
-                if (!isTileFreeForSpawn(r+dr, c+dc)) return false;
+                if (!isTileFreeForSpawn(r + dr, c + dc)) return false;
         return true;
     }
 
@@ -1055,20 +925,46 @@ public class GameController extends StackPane {
         return e[(int)(Math.random() * e.length)];
     }
 
+    /** Returns the correct directional image for an enemy based on its level, element and current direction. */
     private Image enemyImage(Enemy e) {
-        if (e.getLevel() == null)         return npcImg;
-        return switch (e.getLevel()) {
-            case EASY -> npcImg;
-            case HARD -> kingNeptuneImg;
-            case MEDIUM -> {
-                if (e.getElement() == null) yield mrKrabImg;
-                yield switch (e.getElement()) {
-                    case WATER    -> garyImg;
-                    case ELECTRIC -> sandyImg;
-                    default       -> mrKrabImg;
-                };
-            }
-        };
+        int dir = clampDir(e.getCurrentDir());
+        Image[] set;
+        Level lvl = e.getLevel();
+        if (lvl == null) {
+            set = npcImgs;
+        } else {
+            set = switch (lvl) {
+                case EASY -> npcImgs;
+                case HARD -> kingNeptuneImgs;
+                case MEDIUM -> {
+                    if (e.getElement() == null) yield mrKrabImgs;
+                    yield switch (e.getElement()) {
+                        case WATER    -> garyImgs;
+                        case ELECTRIC -> sandyImgs;
+                        default       -> mrKrabImgs;
+                    };
+                }
+            };
+        }
+        return pickDirImage(set, dir);
+    }
+
+    /**
+     * Picks from a 4-directional image array.
+     * Falls back to the first non-null image if the requested direction is missing.
+     */
+    private Image pickDirImage(Image[] set, int dir) {
+        if (set == null) return null;
+        if (dir < 0 || dir > 3) dir = 1;
+        if (set[dir] != null) return set[dir];
+        for (int d : new int[]{1, 0, 2, 3}) {
+            if (set[d] != null) return set[d];
+        }
+        return null;
+    }
+
+    private int clampDir(int dir) {
+        return (dir < 0 || dir > 3) ? 1 : dir;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1099,218 +995,6 @@ public class GameController extends StackPane {
     // UI SETUP
     // ═══════════════════════════════════════════════════════════════════════
 
-<<<<<<< HEAD
-    // ── Movement ────────────────────────────────────────
-    private void tryMove(int dr, int dc) {
-        // อัปเดตทิศที่หันก่อน — ถึงเดินไม่ได้ก็ยังหันหน้าเปลี่ยนได้
-        if (dr == -1) playerDir = 0;          // up (W)
-        else if (dr == 1) playerDir = 1;      // down (S)
-        else if (dc == -1) playerDir = 2;     // left (A)
-        else if (dc == 1) playerDir = 3;      // right (D)
-
-        int nr = playerRow + dr;
-        int nc = playerCol + dc;
-
-        if (nr < 0 || nr >= config.getRows()) { renderGrid(); return; }
-        if (nc < 0 || nc >= config.getCols()) { renderGrid(); return; }
-        if (!map[nr][nc].isPassable()) { renderGrid(); return; }          // ติด Rock
-        if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) { renderGrid(); return; } // ติด Seaweed
-        if (hasBomb[nr][nc]) { renderGrid(); return; }                    // ติด Bomb
-
-        playerRow = nr;
-        playerCol = nc;
-        player.setPos(playerCol, playerRow);
-
-        if (buffMap[playerRow][playerCol] != null) {
-            Buff currentBuff = buffMap[playerRow][playerCol];
-            int level = config.getLevel();
-            boolean shieldDisabled = (level == 3 || level == 4);   // Stage 3-4 ห้ามเก็บ shield
-
-            // 1. ส่งผลกับตัวละคร
-            currentBuff.apply(player);
-
-            // 2. ถ้าเป็นบัฟที่ส่งผลต่อจำนวนระเบิดใน UI (ต้องอัปเดต Label ด้วย)
-            if (currentBuff instanceof MaxBombBuff) {
-                maxBombs++;
-                bombsLeft++;
-                maxBombCount++;
-                updateBombLabel();
-                updateBadge(maxBombBadge, maxBombCount);
-            } else if (currentBuff instanceof BombRangeBuff) {
-                bombRangeCount++;
-                updateBadge(bombRangeBadge, bombRangeCount);
-            } else if (currentBuff instanceof BombDamageBuff) {
-                bombDamageCount++;
-                updateBadge(bombDamageBadge, bombDamageCount);
-            } else if (currentBuff instanceof ShieldBuff) {
-            // Show green ✓ when shield is active
-            shieldBadge.setText("✓");
-            shieldBadge.setStyle(
-                    "-fx-background-color: #43a047; " +
-                            "-fx-text-fill: white; " +
-                            "-fx-font-size: 11px; " +
-                            "-fx-font-weight: bold; " +
-                            "-fx-min-width: 18px; " +
-                            "-fx-min-height: 18px; " +
-                            "-fx-background-radius: 9; " +
-                            "-fx-alignment: center; " +
-                            "-fx-padding: 0 3 0 3;"
-            );
-            shieldBadge.setVisible(true);
-        } else if (currentBuff instanceof HealBuff) {
-            if (hearts < 5) hearts++;
-            updateHearts();
-            // Show green ✓ briefly then hide (heal is instant)
-        }
-
-            // 3. ลบบัฟออกจากแผนที่หลังจากกินแล้ว
-            buffMap[playerRow][playerCol] = null;
-
-            // 4. (Optional) เล่นเสียงเก็บไอเทม
-            // SoundManager.playSFX(pickupSfx);
-        }
-        checkPlayerEnemyCollision();
-        renderGrid();
-    }
-
-    // ── Render the whole grid ───────────────────────────
-    private void renderGrid() {
-        for (int r = 0; r < config.getRows(); r++) {
-            for (int c = 0; c < config.getCols(); c++) {
-                styleCell(r, c);
-            }
-        }
-    }
-
-    private void styleCell(int r, int c) {
-        Button cell = cells[r][c];
-        cell.setText("");
-        cell.setGraphic(null);
-
-        // พื้นหลังพื้นปกติทุกครั้ง
-
-        if (r == playerRow && c == playerCol) {
-            Image playerImg = null;
-            Image[] set = null;
-            if(name.equals("Patrick"))   { set = patrickImgs;   }
-            if(name.equals("Squidward")) { set = squidWardImgs; }
-            if(name.equals("SpongeBob")) { set = spongebobImgs; }
-            playerImg = pickDirImage(set, playerDir);
-
-            // ⭐️ เช็ค Shield เพื่อกำหนด Style เส้นขอบ
-            String playerStyle = baseStyle;
-            if (player.hasShield()) {
-                playerStyle += "-fx-border-color: #00E5FF; " +
-                        "-fx-border-width: 4px; " +
-                        "-fx-border-radius: 100; " +
-                        "-fx-background-radius: 100; " +
-                        "-fx-background-color: #dcedc8;";
-            }
-
-            if (playerImg != null) {
-                cell.setStyle(playerStyle);
-                cell.setGraphic(makeCellImage(playerImg));
-            } else {
-                // กรณีไม่มีรูป ให้เปลี่ยนสีพื้นหลังตัว S แทน
-                cell.setStyle(playerStyle + "-fx-background-color: #fff176; -fx-font-weight: bold;");
-                cell.setText("S");
-            }
-            return;
-        }
-        // Enemy (วาดทับ tile แต่ player จะวาดทับ enemy อีกที — ตรวจไปแล้วด้านบน)
-        Enemy enemyHere = enemyAt(r, c);
-        if (enemyHere != null) {
-            Image img = enemyImage(enemyHere);
-            String enemyStyle = enemyHere.isShielded()
-                    ? "-fx-border-color: #00E5FF; " +
-                    "-fx-border-width: 4px; " +
-                    "-fx-border-radius: 100; " +
-                    "-fx-background-radius: 100; " +
-                    "-fx-background-color: #dcedc8;"
-                    : baseStyle;
-            if (img != null) {
-                cell.setStyle(enemyStyle);
-                cell.setGraphic(makeCellImage(img));
-            } else {
-                cell.setStyle(enemyStyle + "-fx-background-color: #ff7043; -fx-font-weight: bold;");
-                cell.setText("E");
-            }
-            return;
-        }
-        if (hasBomb[r][c]) {
-            if (bombImg != null) {
-                cell.setStyle(baseStyle);
-                cell.setGraphic(makeCellImage(bombImg));
-            } else {
-                cell.setStyle("-fx-background-color: #ef5350; -fx-border-color: #c62828; -fx-font-weight: bold;");
-                cell.setText("B");
-            }
-            return;
-        }
-        if (map[r][c] instanceof Rock) {
-            if (rockImg != null) {
-                cell.setStyle(baseStyle);
-                cell.setGraphic(makeCellImage(rockImg));
-            } else {
-                cell.setStyle("-fx-background-color: #9e9e9e; -fx-border-color: #424242; -fx-font-weight: bold;");
-                cell.setText("R");
-            }
-            return;
-        }
-        if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
-            // ใช้เฟรมที่กำลังแสดงอยู่ (สลับทุก 0.5 วิด้วย seaweedAnimTimer)
-            Image swImg = (seaweedImgs != null) ? seaweedImgs[seaweedFrame] : null;
-            if (swImg == null && seaweedImgs != null) {
-                // fallback: ลองอีกเฟรม
-                swImg = seaweedImgs[1 - seaweedFrame];
-            }
-            if (swImg != null) {
-                cell.setStyle(baseStyle);
-                cell.setGraphic(makeCellImage(swImg));
-            } else {
-                cell.setStyle("-fx-background-color: #66bb6a; -fx-border-color: #2e7d32; -fx-font-weight: bold;");
-                cell.setText("W");
-            }
-            return;
-        }
-
-        if (buffMap[r][c] != null) {
-            Image bImg = null;
-            Buff b = buffMap[r][c];
-
-            if (b instanceof MaxBombBuff) bImg = maxBombImg;
-            else if (b instanceof BombRangeBuff) bImg = bombRangeImg;
-            else if (b instanceof BombDamageBuff) bImg = bombDamageImg;
-            else if (b instanceof ShieldBuff) bImg = bubbleShieldImg;
-            else if (b instanceof HealBuff) bImg = healImg;
-
-            if (bImg != null) {
-                cell.setStyle(baseStyle);
-                cell.setGraphic(makeCellImage(bImg));
-                return;
-            }
-        }
-
-        // Spawn-point marker — แสดงรูป spawn.png บนช่องที่มาร์ค 'P' ใน layout
-        // (เดินทับได้ตามปกติ — ไม่ใช่สิ่งกีดขวาง)
-        if (config.tileAt(r, c) == 'P') {
-            if (spawnImg != null) {
-                cell.setStyle(baseStyle);
-                cell.setGraphic(makeCellImage(spawnImg));
-            } else {
-                cell.setStyle("-fx-background-color: #f8bbd0; -fx-border-color: #ec407a; -fx-font-weight: bold;");
-                cell.setText("P");
-            }
-            return;
-        }
-
-        // plain tile (or destroyed seaweed → ผ่านได้)
-        cell.setStyle(baseStyle);
-    }
-
-    // ── Setup UI (top bar / grid / right panel / bottom) ─
-=======
->>>>>>> 93ac0c839b173038d6ea823533acfa4edaf0816f
     private void setupUI() {
         double rightW = 210, topH = 80, botH = 60;
         double cs = Math.max(Math.floor(Math.min(
@@ -1409,7 +1093,7 @@ public class GameController extends StackPane {
         bombDamageBadge = createBadgeLabel();
         shieldBadge     = createBadgeLabel();
         healBadge       = createBadgeLabel();
-        deactivateShieldBadge(); // show ✗ by default
+        deactivateShieldBadge();
 
         VBox iconCol = new VBox(10);
         iconCol.setAlignment(Pos.TOP_CENTER);
@@ -1443,12 +1127,12 @@ public class GameController extends StackPane {
         skillBtn.setPrefSize(80, 80);
         skillBtn.setFocusTraversable(false);
         skillBtn.setStyle(normalStyle);
-        skillBtn.setOnAction(e -> player.useSkill());
+        skillBtn.setOnAction(e -> handleSkillKey());
 
         String skillText = switch (name) {
-            case "Patrick"      -> "Teleport\n[K]";
-            case "Squidward"    -> "Generate\nshield [K]";
-            case "SpongeBob"    -> "Freeze all\nenemies [K]";
+            case "Patrick"   -> "Teleport\n[K]";
+            case "Squidward" -> "Generate\nshield [K]";
+            case "SpongeBob" -> "Freeze all\nenemies [K]";
             default -> null;
         };
         Label skillLabel = new Label(skillText);
@@ -1502,7 +1186,11 @@ public class GameController extends StackPane {
         VBox layout = new VBox(20, text);
         layout.setAlignment(Pos.CENTER);
         Scene scene = new Scene(layout, 400, 380);
-        scene.setOnKeyPressed(ev -> { if (ev.getCode() == javafx.scene.input.KeyCode.U) { infoPopup.close(); resumeAll(); this.requestFocus(); }});
+        scene.setOnKeyPressed(ev -> {
+            if (ev.getCode() == javafx.scene.input.KeyCode.U) {
+                infoPopup.close(); resumeAll(); this.requestFocus();
+            }
+        });
         infoPopup.setScene(scene);
         pauseAll();
         infoPopup.show();
@@ -1529,7 +1217,11 @@ public class GameController extends StackPane {
         layout.setStyle("-fx-background-color: white; -fx-border-color: black;");
 
         Scene scene = new Scene(layout, 300, 250);
-        scene.setOnKeyPressed(ev -> { if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) { pausePopup.close(); resumeAll(); this.requestFocus(); }});
+        scene.setOnKeyPressed(ev -> {
+            if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                pausePopup.close(); resumeAll(); this.requestFocus();
+            }
+        });
         pausePopup.setScene(scene);
         pausePopup.setOnCloseRequest(ev -> timer.play());
         pausePopup.show();
@@ -1552,12 +1244,24 @@ public class GameController extends StackPane {
 
         // Player
         if (r == playerRow && c == playerCol) {
-            Image img = switch (name) { case "Patrick" -> patrickImg; case "Squidward" -> squidWardImg; default -> spongebobImg; };
+            Image[] set = switch (name) {
+                case "Patrick"  -> patrickImgs;
+                case "Squidward"-> squidWardImgs;
+                default         -> spongebobImgs;
+            };
+            Image playerImg = pickDirImage(set, playerDir);
+
             String style = player.hasShield()
                     ? baseStyle + "-fx-border-color: #00E5FF; -fx-border-width: 4px; -fx-border-radius: 100; -fx-background-radius: 100;"
                     : baseStyle;
-            if (img != null) { cell.setStyle(style); cell.setGraphic(makeCellImage(img)); }
-            else             { cell.setStyle(style + "-fx-background-color: #fff176; -fx-font-weight: bold;"); cell.setText("S"); }
+
+            if (playerImg != null) {
+                cell.setStyle(style);
+                cell.setGraphic(makePlayerCellGraphic(playerImg));
+            } else {
+                cell.setStyle(style + "-fx-background-color: #fff176; -fx-font-weight: bold;");
+                cell.setText("S");
+            }
             return;
         }
 
@@ -1587,9 +1291,11 @@ public class GameController extends StackPane {
             return;
         }
 
-        // Seaweed
+        // Seaweed (animated — frame toggled by seaweedAnimTimer)
         if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
-            if (seaweedImg != null) { cell.setStyle(baseStyle); cell.setGraphic(makeCellImage(seaweedImg)); }
+            Image swImg = (seaweedImgs != null) ? seaweedImgs[seaweedFrame] : null;
+            if (swImg == null && seaweedImgs != null) swImg = seaweedImgs[1 - seaweedFrame];
+            if (swImg != null) { cell.setStyle(baseStyle); cell.setGraphic(makeCellImage(swImg)); }
             else { cell.setStyle("-fx-background-color: #66bb6a; -fx-border-color: #2e7d32; -fx-font-weight: bold;"); cell.setText("W"); }
             return;
         }
@@ -1611,11 +1317,11 @@ public class GameController extends StackPane {
     }
 
     private Image buffImage(Buff b) {
-        if (b instanceof MaxBombBuff)   return maxBombImg;
-        if (b instanceof BombRangeBuff) return bombRangeImg;
-        if (b instanceof BombDamageBuff)return bombDamageImg;
-        if (b instanceof ShieldBuff)    return bubbleShieldImg;
-        if (b instanceof HealBuff)      return healImg;
+        if (b instanceof MaxBombBuff)    return maxBombImg;
+        if (b instanceof BombRangeBuff)  return bombRangeImg;
+        if (b instanceof BombDamageBuff) return bombDamageImg;
+        if (b instanceof ShieldBuff)     return bubbleShieldImg;
+        if (b instanceof HealBuff)       return healImg;
         return null;
     }
 
@@ -1635,21 +1341,12 @@ public class GameController extends StackPane {
     // UI HELPERS
     // ═══════════════════════════════════════════════════════════════════════
 
-    private ImageView makeCellImage(Image img) {
-        ImageView iv = new ImageView(img);
-        double size = Math.max(cellSize - 4, 8);
-        iv.setFitWidth(size);
-        iv.setFitHeight(size);
-        iv.setPreserveRatio(true);
-        return iv;
-    }
-
     public ImageView createSkillImage(String skillName) {
         Image img = new Image(getClass().getResourceAsStream("/images/" + skillName));
         ImageView iv = new ImageView(img);
         double size = 54.0;
         iv.setFitWidth(size); iv.setFitHeight(size); iv.setPreserveRatio(false);
-        javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(size/2, size/2, size/2);
+        javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(size / 2, size / 2, size / 2);
         iv.setClip(clip);
         return iv;
     }
@@ -1692,7 +1389,7 @@ public class GameController extends StackPane {
     private void updateSkillButtonUI() {
         if (!(player instanceof Skillable s)) return;
         if (!s.isSkillReady()) {
-            long remaining = Math.max(0, (s.getLastSkillUseTime() + (long)s.getCooldown()*1000L
+            long remaining = Math.max(0, (s.getLastSkillUseTime() + (long) s.getCooldown() * 1000L
                     - System.currentTimeMillis()) / 1000);
             skillBtn.setText(remaining + "s");
             skillBtn.setDisable(true);
@@ -1716,7 +1413,7 @@ public class GameController extends StackPane {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PUBLIC API (called by other controllers)
+    // PUBLIC API
     // ═══════════════════════════════════════════════════════════════════════
 
     public void setGameStatus(Status s) { this.gameStatus = s; }
