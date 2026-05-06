@@ -384,88 +384,66 @@ public class GameController extends StackPane {
         map      = new Tile[rows][cols];
         seaweeds = new Seaweed[rows][cols];
         hasBomb  = new boolean[rows][cols];
-        buffMap = new Buff[rows][cols];
+        buffMap  = new Buff[rows][cols];
 
-        // อ่าน layout จาก StageData
-        //   .  = empty
-        //   R  = rock
-        //   S  = seaweed
-        //   C  = player spawn  (เป็นพื้นเปล่า ตัวละครจะวาดทับ)
-        //   P  = enemy spawn   (เป็นพื้นเปล่า ใช้ทีหลัง)
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 map[r][c] = new Tile(r, c);
                 char ch = config.tileAt(r, c);
-                switch (ch) {
-                    case 'R':
-                        map[r][c] = new Rock(r, c);
-                        break;
-                    case 'S':
-                        seaweeds[r][c] = new Seaweed(r, c);
+                if (ch == 'R') {
+                    map[r][c] = new Rock(r, c);
+                } else if (ch == 'S') {
+                    seaweeds[r][c] = new Seaweed(r, c);
 
-                        double chance =  Math.random();
-                        if (chance < 0.1) {buffMap[r][c] = new MaxBombBuff(r,c);}
-                        else if(chance < 0.2){buffMap[r][c]= new BombRangeBuff(r,c);}
-                        else if(chance < 0.3){buffMap[r][c]= new BombDamageBuff(r,c);}
-                        else if(chance < 0.4){buffMap[r][c]= new ShieldBuff(r,c);}
-                        else if(chance < 0.5){buffMap[r][c]= new HealBuff(r,c);}
-                        break;
-
-                    default:
-                        break;
+                    // Random buff hidden under seaweed (revealed when destroyed)
+                    double chance = Math.random();
+                    if      (chance < 0.1) buffMap[r][c] = new MaxBombBuff(r, c);
+                    else if (chance < 0.2) buffMap[r][c] = new BombRangeBuff(r, c);
+                    else if (chance < 0.3) buffMap[r][c] = new BombDamageBuff(r, c);
+                    else if (chance < 0.4) buffMap[r][c] = new ShieldBuff(r, c);
+                    else if (chance < 0.5) buffMap[r][c] = new HealBuff(r, c);
                 }
             }
         }
 
-        int row1 = (int)(Math.random() * config.getRows());
-        int col1 = (int)(Math.random() * config.getCols());
-        int[][] maxBombPositions = {{row1,col1}};
-        for (int[] p : maxBombPositions) {
-            int  r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                buffMap[r][c] = new MaxBombBuff(r,c);
-            }
-        }
+        // Spawn exactly one of each buff type on a random free empty tile
+        Class<?>[] buffTypes = {
+                MaxBombBuff.class,
+                BombRangeBuff.class,
+                BombDamageBuff.class,
+                HealBuff.class,
+                ShieldBuff.class
+        };
 
-        int row2 = (int)(Math.random() * config.getRows());
-        int col2 = (int)(Math.random() * config.getCols());
-        int[][] bombRangePositions = {{row2,col2}};
-        for (int[] p : bombRangePositions) {
-            int  r = p[0], c = p[1];
-            if (r > 0 && r < rows && c > 0 && c < cols) {
-                buffMap[r][c] = new BombRangeBuff(r,c);
-            }
-        }
+        for (Class<?> buffType : buffTypes) {
+            int[] pos = randomFreeBuffTile(rows, cols);
+            if (pos == null) continue;
+            int r = pos[0], c = pos[1];
 
-        int row3 = (int)(Math.random() * config.getRows());
-        int col3 = (int)(Math.random() * config.getCols());
-        int[][] damagePositions = {{row3,col3}};
-        // กำหนดพิกัดที่ต้องการ
-        for (int[] p : damagePositions) {
-            int r = p[0], c = p[1];
-            if (r >= 0 && r < rows && c >= 0 && c < cols) {
-                buffMap[r][c] = new BombDamageBuff(r, c);
-            }
+            if      (buffType == MaxBombBuff.class)   buffMap[r][c] = new MaxBombBuff(r, c);
+            else if (buffType == BombRangeBuff.class)  buffMap[r][c] = new BombRangeBuff(r, c);
+            else if (buffType == BombDamageBuff.class) buffMap[r][c] = new BombDamageBuff(r, c);
+            else if (buffType == HealBuff.class)       buffMap[r][c] = new HealBuff(r, c);
+            else if (buffType == ShieldBuff.class)     buffMap[r][c] = new ShieldBuff(r, c);
         }
+    }
 
-        int row4 = (int)(Math.random() * config.getRows());
-        int col4 = (int)(Math.random() * config.getCols());
-        int[][] healPositions = {{row4,col4}}; // กำหนดพิกัดที่ต้องการ
-        for (int[] p : healPositions) { int r = p[0], c = p[1];
-            if (r >= 0 && r < rows && c >= 0 && c < cols) {
-                buffMap[r][c] = new HealBuff(r, c);
-            }
-        }
+    /** Returns a random tile that is: empty (not Rock, not Seaweed, not player/enemy spawn, not already has a buff) */
+    private int[] randomFreeBuffTile(int rows, int cols) {
+        for (int attempt = 0; attempt < 500; attempt++) {
+            int r = (int)(Math.random() * rows);
+            int c = (int)(Math.random() * cols);
 
-        int row5 = (int)(Math.random() * config.getRows());
-        int col5 = (int)(Math.random() * config.getCols());
-        int[][] shieldPositions = {{row5,col5}}; // กำหนดพิกัดที่ต้องการ
-        for (int[] p : shieldPositions) {
-            int r = p[0], c = p[1];
-            if (r >= 0 && r < rows && c >= 0 && c < cols) {
-                buffMap[r][c] = new ShieldBuff(r, c);
-            }
+            char ch = config.tileAt(r, c);
+            if (ch != '.') continue;                          // must be plain empty tile
+            if (map[r][c] instanceof Rock) continue;          // no rocks
+            if (seaweeds[r][c] != null) continue;             // no seaweed tiles
+            if (buffMap[r][c] != null) continue;              // no existing buff
+            if (r == playerRow && c == playerCol) continue;   // not on player spawn
+
+            return new int[]{r, c};
         }
+        return null; // no free tile found after 500 attempts
     }
 
     // ── Setup enemies ตาม stage ──────────────────────
@@ -975,10 +953,11 @@ public class GameController extends StackPane {
             // ⭐️ เช็ค Shield เพื่อกำหนด Style เส้นขอบ
             String playerStyle = baseStyle;
             if (player.hasShield()) {
-                playerStyle += "-fx-border-color: #00E5FF; " +  // สีฟ้าสว่าง (Cyan)
-                        "-fx-border-width: 4px; " +      // ความหนาเส้น
-                        "-fx-border-radius: 100; " +    // ทำให้เส้นขอบโค้งเป็นวงกลม
-                        "-fx-background-radius: 100;";   // ทำให้พื้นหลังโค้งตาม (ถ้ามี)
+                playerStyle += "-fx-border-color: #00E5FF; " +
+                        "-fx-border-width: 4px; " +
+                        "-fx-border-radius: 100; " +
+                        "-fx-background-radius: 100; " +
+                        "-fx-background-color: #dcedc8;";
             }
 
             if (playerImg != null) {
@@ -995,11 +974,18 @@ public class GameController extends StackPane {
         Enemy enemyHere = enemyAt(r, c);
         if (enemyHere != null) {
             Image img = enemyImage(enemyHere);
+            String enemyStyle = enemyHere.isShielded()
+                    ? "-fx-border-color: #00E5FF; " +
+                    "-fx-border-width: 4px; " +
+                    "-fx-border-radius: 100; " +
+                    "-fx-background-radius: 100; " +
+                    "-fx-background-color: #dcedc8;"
+                    : baseStyle;
             if (img != null) {
-                cell.setStyle(baseStyle);
+                cell.setStyle(enemyStyle);
                 cell.setGraphic(makeCellImage(img));
             } else {
-                cell.setStyle("-fx-background-color: #ff7043; -fx-border-color: #bf360c; -fx-font-weight: bold;");
+                cell.setStyle(enemyStyle + "-fx-background-color: #ff7043; -fx-font-weight: bold;");
                 cell.setText("E");
             }
             return;
