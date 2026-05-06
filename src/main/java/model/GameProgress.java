@@ -16,8 +16,7 @@ public class GameProgress {
 
     // Stage is unlocked if it's stage 0, or the previous stage is cleared
     public static boolean isUnlocked(int stageIndex) {
-        //if (stageIndex == 0) return true;
-        //return clearedStages.contains(stageIndex - 1);
-        return true;
+        if (stageIndex == 0) return true;
+        return clearedStages.contains(stageIndex - 1);
     }
 }
