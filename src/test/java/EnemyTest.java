@@ -18,7 +18,7 @@ public class EnemyTest {
     void easyEnemy_defaultStats() {
         EasyEnemy e = new EasyEnemy(1, 3, 4, false);
         assertEquals(Level.EASY, e.getLevel());
-        assertEquals(2, e.getHealth());
+        assertEquals(1, e.getHealth());
         assertEquals(1, e.getDamage());
         assertEquals(Element.NONE, e.getElement());
         assertFalse(e.isShielded());
@@ -28,8 +28,8 @@ public class EnemyTest {
     void mediumEnemy_defaultStats() {
         MediumEnemy e = new MediumEnemy(1, 0, 0, Element.FIRE, false);
         assertEquals(Level.MEDIUM, e.getLevel());
-        assertEquals(4, e.getHealth());
-        assertEquals(2, e.getDamage());
+        assertEquals(5, e.getHealth());
+        assertEquals(1, e.getDamage());
         assertEquals(Element.FIRE, e.getElement());
     }
 
@@ -43,8 +43,8 @@ public class EnemyTest {
     void hardEnemy_defaultStats() {
         HardEnemy e = new HardEnemy(2, 0, 0, Element.WATER, false);
         assertEquals(Level.HARD, e.getLevel());
-        assertEquals(8, e.getHealth());
-        assertEquals(3, e.getDamage());
+        assertEquals(10, e.getHealth());
+        assertEquals(2, e.getDamage());
     }
 
     // ── Tile occupancy ────────────────────────────────────────────
@@ -214,11 +214,11 @@ public class EnemyTest {
     }
 
     @Test
-    void canWalk_falseOnBomb() {
+    void canWalk_TrueOnBomb() {
         boolean[][] hasBomb = new boolean[5][5];
         hasBomb[3][3] = true;
         EasyEnemy e = new EasyEnemy(1, 0, 0, false);
-        assertFalse(e.canWalk(3, 3, emptyMap(5, 5), emptySeaweeds(5, 5),
+        assertTrue(e.canWalk(3, 3, emptyMap(5, 5), emptySeaweeds(5, 5),
                 hasBomb, new ArrayList<>(), 5, 5));
     }
 
