@@ -10,7 +10,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        SoundManager.playBGM("spongebobBGM.mp3");
+        SoundManager.playBGM("home.mp3");
         HomeController home = new HomeController();
         Scene scene = new Scene(home, 900, 600);
         stage.setScene(scene);

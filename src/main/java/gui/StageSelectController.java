@@ -1,5 +1,7 @@
 package gui;
 
+import game.Element;
+import game.util.SoundManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -9,6 +11,8 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import model.GameProgress;
 import model.StageData;
@@ -20,10 +24,15 @@ public class StageSelectController extends BorderPane {
     private Button[] stageButtons;
     private String selectedElement = "";
     private Button lastSelectedCharBtn = null;
+    // กล่องไอคอนศัตรูประจำ stage — ต้องอัปเดตเมื่อ stage เปลี่ยน
+    private HBox enemyIconBox;
+    // รูป preview แผนที่ stage ตรงกลาง — อัปเดตเมื่อ stage เปลี่ยน
+    private ImageView stagePreview;
 
     public StageSelectController() {
         initializeStageSelection(); // ✅ ต้องมาก่อน
         setupBackground();
+        SoundManager.playBGM("home.mp3");   // ใช้เพลงเดียวกับ Home (ไม่ restart ถ้าเล่นอยู่แล้ว)
 
         Button back = new Button("X");
 
@@ -62,7 +71,46 @@ public class StageSelectController extends BorderPane {
         this.setTop(topPane);
         this.setLeft(stageSelectBar());
         this.setRight(stageInformation());
+        this.setCenter(buildStagePreview());
         this.setBottom(hbox);
+    }
+
+    /** สร้าง ImageView ตรงกลางที่แสดงรูปแผนที่ของ stage ที่เลือก */
+    private StackPane buildStagePreview() {
+        stagePreview = new ImageView();
+        stagePreview.setPreserveRatio(true);
+        stagePreview.setSmooth(false);
+        // ขนาดเล็กลง — พอดีกับช่องว่างระหว่าง stage bar กับ panel ขวา
+        stagePreview.setFitWidth(330);
+        stagePreview.setFitHeight(330);
+
+        StackPane wrapper = new StackPane(stagePreview);
+        wrapper.setAlignment(Pos.CENTER);
+        // จำกัดขนาด wrapper ไม่ให้ดัน BorderPane กว้างเกิน
+        wrapper.setMaxWidth(360);
+        wrapper.setMaxHeight(360);
+        wrapper.setPadding(new Insets(8));
+        BorderPane.setMargin(wrapper, new Insets(20, 10, 20, 10));
+
+        // โหลดรูปแรก (Stage 1)
+        updateStagePreview(0);
+        return wrapper;
+    }
+
+    /** เปลี่ยนรูปแผนที่ตาม stage ที่เลือก */
+    private void updateStagePreview(int stageIndex) {
+        if (stagePreview == null) return;
+        // Stage 1 ใช้ StageI.png (Roman numeral) ส่วน 2-5 ใช้ Stage2-5.png
+        String fileName = (stageIndex == 0) ? "StageI" : "Stage" + (stageIndex + 1);
+        try {
+            Image img = new Image(
+                    getClass().getResourceAsStream("/images/Stage/" + fileName + ".png")
+            );
+            stagePreview.setImage(img);
+        } catch (Exception e) {
+            System.out.println("[StageSelect] Stage preview not found: " + fileName);
+            stagePreview.setImage(null);
+        }
     }
 
     private void initializeStageSelection() {
@@ -171,6 +219,11 @@ public class StageSelectController extends BorderPane {
                     ? javafx.scene.paint.Color.web("#2196F3")
                     : javafx.scene.paint.Color.TRANSPARENT);
         }
+
+        // ⭐️ อัปเดต icon ศัตรูตาม stage ที่เลือก
+        updateEnemyIcons(index);
+        // ⭐️ อัปเดตรูป preview แผนที่
+        updateStagePreview(index);
     }
 
     private javafx.scene.shape.Circle getStageRing(Button btn) {
@@ -180,49 +233,156 @@ public class StageSelectController extends BorderPane {
     }
 
     private VBox stageInformation() {
-        VBox storyBox = new VBox(5);
-        Label storyTitle = new Label("  Story");
-        storyTitle.setFont(pixelFont(26));
-        Label storyDetail = new Label(" SpongeBomb must blast through obstacles and tiny \n" +
-                " invaders to clear the grid before his five minute\n" +
-                " timer hits zero");
+        // ⭐️ Enemies in this stage
+        VBox enemyBox = new VBox(8);
+        Label enemyTitle = new Label("Enemies");
+        enemyTitle.setFont(pixelFont(34));
+        enemyIconBox = new HBox(12);
+        enemyIconBox.setAlignment(Pos.CENTER_LEFT);
+        enemyBox.getChildren().addAll(enemyTitle, enemyIconBox);
 
-        storyDetail.setFont(pixelFont(16));
-        storyBox.getChildren().addAll(storyTitle, storyDetail);
-
-        VBox infoBox = new VBox(5);
-        Label infoTitle = new Label("Stage Details");
-        infoTitle.setFont(pixelFont(26));
-        Label infoDetail = new Label(".\n.\n.\n.\n.\n.");
-        infoDetail.setFont(pixelFont(16));
-        infoBox.getChildren().addAll(infoTitle, infoDetail);
-
+        // ⭐️ Characters
         HBox characterBox = new HBox(15);
         characterBox.setAlignment(Pos.CENTER_LEFT);
-        characterBox.setPadding(new Insets(20, 0, 0, 0));
+        characterBox.setPadding(new Insets(10, 0, 0, 0));
 
-        Button patrick = createSelectCharacterButton("Patrick","characterProfile/patrickPfp.jpeg");
-        Button squidWard = createSelectCharacterButton("Squidward","characterProfile/squidwardPfp.jpg");
-        Button spongeBob = createSelectCharacterButton("SpongeBob","characterProfile/spongebobPfp.jpg");
+        Button patrick   = createSelectCharacterButton("Patrick",   "characterProfile/patrickPfp.jpeg",   Element.FIRE);
+        Button squidWard = createSelectCharacterButton("Squidward", "characterProfile/squidwardPfp.jpg",  Element.WATER);
+        Button spongeBob = createSelectCharacterButton("SpongeBob", "characterProfile/spongebobPfp.jpg",  Element.ELECTRIC);
         characterBox.getChildren().addAll(patrick, squidWard, spongeBob);
 
-        Label choosingCharacter = new Label("Character :   None");
-        choosingCharacter.setFont(pixelFont(16));
+        Label choosingCharacter = new Label("Character   None");
+        choosingCharacter.setFont(pixelFont(20));
 
-        patrick.setOnAction(e -> handleCharacterSelect("Patrick",choosingCharacter,patrick));
-        squidWard.setOnAction(e -> handleCharacterSelect("Squidward",choosingCharacter,squidWard));
-        spongeBob.setOnAction(e -> handleCharacterSelect("SpongeBob",choosingCharacter,spongeBob));
+        patrick.setOnAction(e -> handleCharacterSelect("Patrick",  choosingCharacter, patrick));
+        squidWard.setOnAction(e -> handleCharacterSelect("Squidward", choosingCharacter, squidWard));
+        spongeBob.setOnAction(e -> handleCharacterSelect("SpongeBob", choosingCharacter, spongeBob));
 
-        VBox rightLayout = new VBox(15);
-        rightLayout.setPadding(new Insets(22, 28, 22, 28));
-        rightLayout.getChildren().addAll(storyBox, infoBox, characterBox, choosingCharacter);
+        Label characterTitle = new Label("Choose Character");
+        characterTitle.setFont(pixelFont(34));
 
-        // ใส่กรอบไม้ BackStage.png ให้กล่อง story/details/character
+        VBox rightLayout = new VBox(18);
+        rightLayout.setPadding(new Insets(30, 28, 22, 28));
+        rightLayout.getChildren().addAll(enemyBox, characterTitle, characterBox, choosingCharacter);
+
+        // กรอบไม้
         Background wood = createWoodBackground();
         if (wood != null) rightLayout.setBackground(wood);
         BorderPane.setMargin(rightLayout, new Insets(5, 10, 5, 5));
 
+        // อัปเดต icon ศัตรูตาม stage แรก (Stage 1)
+        updateEnemyIcons(0);
+
         return rightLayout;
+    }
+
+    /** อัปเดต icon ศัตรูตาม stage ที่เลือก */
+    private void updateEnemyIcons(int stageIndex) {
+        if (enemyIconBox == null) return;
+        enemyIconBox.getChildren().clear();
+
+        // mapping: ใช้ stage index (0-based) เพื่อรู้ว่า stage นี้มี enemy อะไร
+        switch (stageIndex) {
+            case 0: // Stage 1 — NPC easy + Gary (water)
+                enemyIconBox.getChildren().addAll(
+                        createEnemyIcon("/images/gamePlay/npc/NpcFont.png",     null),
+                        createEnemyIcon("/images/gamePlay/gary/GaryFont.png",   Element.WATER)
+                );
+                break;
+            case 1: // Stage 2 — 70% Sandy (electric), 30% MrKrab (fire)
+                enemyIconBox.getChildren().addAll(
+                        createEnemyIcon("/images/gamePlay/sandy/SandyFont.png", Element.ELECTRIC),
+                        createEnemyIcon("/images/gamePlay/mrkrab/MrKrabFont.png", Element.FIRE)
+                );
+                break;
+            case 2: // Stage 3 — 70% MrKrab (fire), 30% Gary (water)
+                enemyIconBox.getChildren().addAll(
+                        createEnemyIcon("/images/gamePlay/mrkrab/MrKrabFont.png", Element.FIRE),
+                        createEnemyIcon("/images/gamePlay/gary/GaryFont.png",     Element.WATER)
+                );
+                break;
+            case 3: // Stage 4 — 70% Gary (water), 30% Sandy (electric)
+                enemyIconBox.getChildren().addAll(
+                        createEnemyIcon("/images/gamePlay/gary/GaryFont.png",   Element.WATER),
+                        createEnemyIcon("/images/gamePlay/sandy/SandyFont.png", Element.ELECTRIC)
+                );
+                break;
+            case 4: // Stage 5 — ทั้ง 3 medium + KingNeptune (hard, random element)
+                enemyIconBox.getChildren().addAll(
+                        createEnemyIcon("/images/gamePlay/mrkrab/MrKrabFont.png", Element.FIRE),
+                        createEnemyIcon("/images/gamePlay/gary/GaryFont.png",     Element.WATER),
+                        createEnemyIcon("/images/gamePlay/sandy/SandyFont.png",   Element.ELECTRIC),
+                        createEnemyIcon("/images/gamePlay/kingneptune/KingNepFront.png", null)
+                );
+                break;
+        }
+    }
+
+    /** สร้างไอคอนศัตรูแบบวงกลม + element badge ที่มุมขวาบน */
+    private StackPane createEnemyIcon(String imagePath, Element element) {
+        double size = 60;
+
+        ImageView iv = new ImageView();
+        try {
+            Image img = new Image(getClass().getResourceAsStream(imagePath));
+            iv.setImage(img);
+            iv.setFitWidth(size);
+            iv.setFitHeight(size);
+            iv.setPreserveRatio(false);
+            iv.setSmooth(false);
+        } catch (Exception e) {
+            System.out.println("[StageSelect] Enemy icon not found: " + imagePath);
+        }
+
+        // clip รูปให้เป็นวงกลม
+        double r = size / 2;
+        Circle clip = new Circle(r, r, r);
+        iv.setClip(clip);
+
+        // ขอบวงกลม
+        Circle border = new Circle(r);
+        border.setFill(Color.TRANSPARENT);
+        border.setStroke(Color.web("#3a2614"));
+        border.setStrokeWidth(2);
+
+        StackPane container = new StackPane(border, iv);
+        container.setPrefSize(size, size);
+
+        // element badge — ใช้ translate ดันไปมุมขวาบนของวงกลมจริงๆ
+        if (element != null && element != Element.NONE) {
+            StackPane badge = createElementBadge(element);
+            // ดันไปมุมขวาบน: x = +size/2*0.7 (ออกขวา), y = -size/2*0.7 (ขึ้นบน)
+            badge.setTranslateX(size * 0.35);
+            badge.setTranslateY(-size * 0.35);
+            container.getChildren().add(badge);
+        }
+
+        return container;
+    }
+
+    /** สร้าง badge เล็กๆ แสดง element (F = Fire, W = Water, E = Electric) */
+    private StackPane createElementBadge(Element element) {
+        String letter;
+        Color color;
+        switch (element) {
+            case FIRE:     letter = "F"; color = Color.web("#e74c3c"); break;
+            case WATER:    letter = "W"; color = Color.web("#3498db"); break;
+            case ELECTRIC: letter = "E"; color = Color.web("#f1c40f"); break;
+            default:       letter = "?"; color = Color.GRAY;           break;
+        }
+        Circle bg = new Circle(11, color);
+        bg.setStroke(Color.WHITE);
+        bg.setStrokeWidth(2);
+
+        Label text = new Label(letter);
+        text.setStyle(
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: bold;"
+        );
+
+        StackPane badge = new StackPane(bg, text);
+        return badge;
     }
 
     private void handleCharacterSelect(String name, Label choosingLabel, Button clickedBtn) {
@@ -293,6 +453,7 @@ public class StageSelectController extends BorderPane {
         graphic.setPrefSize(btnSize + 12, btnSize + 12);
 
         // ถ้า lock ใส่ overlay 🔒 ทับรูป
+        //
         if (!unlocked) {
             Label lockLabel = new Label("🔒");
             lockLabel.setFont(Font.font(28));
@@ -332,11 +493,12 @@ public class StageSelectController extends BorderPane {
                 btn.setScaleY(1.1);
             });
         }
-
         return btn;
+
+
     }
 
-    private Button createSelectCharacterButton(String name, String imageName) {
+    private Button createSelectCharacterButton(String name, String imageName, Element element) {
         double btnSize = 70;
 
         Image image = new Image(getClass().getResourceAsStream("/images/" + imageName));
@@ -346,26 +508,34 @@ public class StageSelectController extends BorderPane {
         imageView.setPreserveRatio(false);
 
         double radius = btnSize / 2;
-        javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
+        Circle clip = new Circle(radius, radius, radius);
         imageView.setClip(clip);
 
         // Border ring — visible when selected
-        javafx.scene.shape.Circle ring = new javafx.scene.shape.Circle(radius + 3);
-        ring.setFill(javafx.scene.paint.Color.TRANSPARENT);
-        ring.setStroke(javafx.scene.paint.Color.TRANSPARENT);
+        Circle ring = new Circle(radius + 3);
+        ring.setFill(Color.TRANSPARENT);
+        ring.setStroke(Color.TRANSPARENT);
         ring.setStrokeWidth(3);
 
         StackPane graphic = new StackPane(ring, imageView);
         graphic.setPrefSize(btnSize + 6, btnSize + 6);
+
+        // ⭐️ Element badge ที่มุมขวาบนของวงกลมจริงๆ (ใช้ translate)
+        if (element != null && element != Element.NONE) {
+            StackPane badge = createElementBadge(element);
+            badge.setTranslateX(btnSize * 0.35);
+            badge.setTranslateY(-btnSize * 0.35);
+            graphic.getChildren().add(badge);
+        }
 
         Button btn = new Button();
         btn.setGraphic(graphic);
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         btn.setStyle(
                 "-fx-background-color: transparent; " +
-                        "-fx-background-insets: 0; " +
-                        "-fx-border-color: transparent; " +
-                        "-fx-padding: 0;"
+                "-fx-background-insets: 0; " +
+                "-fx-border-color: transparent; " +
+                "-fx-padding: 0;"
         );
         btn.setUserData(new Object[]{name, ring}); // store name + ring for later
 

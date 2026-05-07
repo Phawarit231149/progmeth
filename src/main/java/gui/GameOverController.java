@@ -1,5 +1,7 @@
 package gui;
 
+import game.util.SoundManager;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -14,7 +16,7 @@ public class GameOverController extends BorderPane {
     public GameOverController(Status gameResult, StageData config, String name) {
 
         Label title = new Label("");
-        title.setFont(Font.font(50));
+        title.setFont(pixelFont(40));
         title.setPrefSize(500,200);
         title.setAlignment(Pos.CENTER);
 
@@ -22,9 +24,15 @@ public class GameOverController extends BorderPane {
         Button retry = new Button("Retry");
         Button back = new Button("Back to stage");
 
-        nextStage.setPrefSize(200,50);
-        retry.setPrefSize(200,50);
-        back.setPrefSize(200,50);
+        // ⭐️ ใช้ pixel font กับปุ่มทั้ง 3
+        Font btnFont = pixelFont(20);
+        nextStage.setFont(btnFont);
+        retry.setFont(btnFont);
+        back.setFont(btnFont);
+
+        nextStage.setPrefSize(220,55);
+        retry.setPrefSize(220,55);
+        back.setPrefSize(220,55);
 
         nextStage.setOnAction(e -> {
             GameController gameController = new GameController(StageData.ALL_STAGES[config.getLevel()], name);
@@ -46,20 +54,25 @@ public class GameOverController extends BorderPane {
         vbox.setPadding(new Insets(50));
 
         if(gameResult.equals(Status.WIN)){
-            title.setText("Stage Clear!");
-            vbox.getChildren().addAll(title, nextStage, retry, back);
+            setupBackground("StageClear.png");
+            vbox.getChildren().addAll(nextStage, retry, back);
             this.setCenter(vbox);
+            // ⭐️ เสียงชนะ
+            SoundManager.stopBGM();
+            SoundManager.playOneShot("win.mp3");
         }
         if(gameResult.equals(Status.LOSE)){
+            setupBackground("MissionFail.png");
             title.setText("Mission Fail!");
-            vbox.getChildren().addAll(title,retry,back);
+            vbox.getChildren().addAll(retry,back);
             this.setCenter(vbox);
+            // ⭐️ เสียงแพ้
+            SoundManager.stopBGM();
+            SoundManager.playOneShot("lose.mp3");
         }
         if(gameResult.equals(Status.CLEAR)){
+            setupBackground("Congratulations.png");
             title.setText("Congratulations!");
-            Label subtitle = new Label(".\n.\n.\n.");
-            subtitle.setFont(Font.font(24));
-            vbox.getChildren().addAll(title,subtitle);
 
             HBox hbox = new HBox(20);
             hbox.setAlignment(Pos.CENTER);
@@ -67,7 +80,39 @@ public class GameOverController extends BorderPane {
             hbox.getChildren().addAll(retry,back);
             this.setTop(vbox);
             this.setCenter(hbox);
+            // ⭐️ เสียงผ่าน stage สุดท้าย (ใช้ win.mp3 เหมือนกัน)
+            SoundManager.stopBGM();
+            SoundManager.playOneShot("win.mp3");
         }
 
+    }
+
+    /** โหลด pixel font จาก /Font/pixelFont.ttf */
+    private Font pixelFont(double size) {
+        Font f = Font.loadFont(
+                getClass().getResourceAsStream("/Font/pixelFont.ttf"), size
+        );
+        return f != null ? f : Font.font(size);
+    }
+
+    private void setupBackground(String image) {
+        try {
+            Image bgImage = new Image(
+                    getClass().getResourceAsStream("/images/homeDecoration/"+image)
+            );
+            BackgroundImage backgroundImage = new BackgroundImage(
+                    bgImage,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundRepeat.NO_REPEAT,
+                    BackgroundPosition.CENTER,
+                    new BackgroundSize(
+                            1.0, 1.0,
+                            true, true,    // ใช้ percentage
+                            false, false
+            ));
+            this.setBackground(new Background(backgroundImage));
+        } catch (Exception e) {
+            System.out.println("[Home] Background load failed: " + e.getMessage());
+        }
     }
 }

@@ -1,5 +1,6 @@
 package gui;
 
+import game.util.SoundManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -22,7 +23,7 @@ public class HomeController extends StackPane {
     public HomeController() {
         setupBackground();
         setupUI();
-        //SoundManager.playBGM("spongebobBGM.mp3");
+        SoundManager.playBGM("home.mp3");
     }
 
     private void setupBackground() {

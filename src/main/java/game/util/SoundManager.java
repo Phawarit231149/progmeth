@@ -12,6 +12,8 @@ public class SoundManager {
     private static double musicVolume = 50.0;
 
     private static MediaPlayer bgmPlayer;
+    private static String currentBgmFile = null;   // ติดตามไฟล์ BGM ปัจจุบัน
+    private static AudioClip currentStinger = null; // ติดตามเสียง win/lose
 
     public static double getOverallVolume() { return overallVolume; }
     public static double getSfxVolume() { return sfxVolume; }
@@ -34,6 +36,15 @@ public class SoundManager {
 
     public static void playBGM(String fileName) {
         try {
+            // หยุดเสียง win/lose ถ้ามี (เปลี่ยนหน้าจอแล้วไม่ต้องเล่นต่อ)
+            stopOneShot();
+
+            // ถ้าไฟล์เดิม + กำลังเล่นอยู่ → ไม่ต้องเริ่มใหม่
+            if (fileName.equals(currentBgmFile) && bgmPlayer != null
+                    && bgmPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+                return;
+            }
+
             if (bgmPlayer != null) {
                 bgmPlayer.stop();
             }
@@ -49,10 +60,46 @@ public class SoundManager {
             bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
             bgmPlayer.setVolume(musicVolume / 100.0);
             bgmPlayer.play();
+            currentBgmFile = fileName;
 
         } catch (Exception e) {
             System.out.println("BGM Error: " + e.getMessage());
         }
+    }
+
+    /** เล่นเสียงครั้งเดียวไม่วนซ้ำ — เหมาะกับเสียงชนะ/แพ้ (win.mp3, lose.mp3) */
+    public static void playOneShot(String fileName) {
+        try {
+            // หยุดเสียงเดิมก่อน (ถ้ามี)
+            stopOneShot();
+
+            URL resource = SoundManager.class.getResource("/sounds/" + fileName);
+            if (resource == null) {
+                System.out.println("หาไฟล์ SFX ไม่เจอ: " + fileName);
+                return;
+            }
+            currentStinger = new AudioClip(resource.toString());
+            currentStinger.setVolume(sfxVolume / 100.0);
+            currentStinger.play();
+        } catch (Exception e) {
+            System.out.println("OneShot Error: " + e.getMessage());
+        }
+    }
+
+    /** หยุดเสียง stinger (win/lose) ที่กำลังเล่นอยู่ */
+    public static void stopOneShot() {
+        if (currentStinger != null) {
+            try { currentStinger.stop(); } catch (Exception ignored) {}
+            currentStinger = null;
+        }
+    }
+
+    /** หยุด BGM ที่กำลังเล่นอยู่ */
+    public static void stopBGM() {
+        if (bgmPlayer != null) {
+            bgmPlayer.stop();
+        }
+        currentBgmFile = null;
     }
 
     public static void playSFX(AudioClip sfx) {
