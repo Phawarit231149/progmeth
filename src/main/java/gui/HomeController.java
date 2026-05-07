@@ -56,6 +56,11 @@ public class HomeController extends StackPane {
         Button settingButton = createImageButton("/images/homeDecoration/settingButton.png");
         Button quitButton = createImageButton("/images/homeDecoration/exitButton.png");
 
+        // ⭐️ เสียง hover + click
+        SoundManager.attachUiSfx(startButton);
+        SoundManager.attachUiSfx(settingButton);
+        SoundManager.attachUiSfx(quitButton);
+
         startButton.setOnAction(e -> {
             StageSelectController stageSelectController = new StageSelectController();
             this.getScene().setRoot(stageSelectController);

@@ -189,10 +189,34 @@ public class GameController extends StackPane {
         this.setFocusTraversable(true);
         this.setOnKeyPressed(event -> {
             switch (event.getCode()) {
-                case W -> { if (!stopCharacter) tryMove(-1,  0); }
-                case S -> { if (!stopCharacter) tryMove( 1,  0); }
-                case A -> { if (!stopCharacter) tryMove( 0, -1); }
-                case D -> { if (!stopCharacter) tryMove( 0,  1); }
+                case W -> {
+                    if (!stopCharacter) {
+                        heldMoveKeys.add(event.getCode());
+                        startWalkSound();
+                        tryMove(-1, 0);
+                    }
+                }
+                case S -> {
+                    if (!stopCharacter) {
+                        heldMoveKeys.add(event.getCode());
+                        startWalkSound();
+                        tryMove(1, 0);
+                    }
+                }
+                case A -> {
+                    if (!stopCharacter) {
+                        heldMoveKeys.add(event.getCode());
+                        startWalkSound();
+                        tryMove(0, -1);
+                    }
+                }
+                case D -> {
+                    if (!stopCharacter) {
+                        heldMoveKeys.add(event.getCode());
+                        startWalkSound();
+                        tryMove(0, 1);
+                    }
+                }
                 case O -> { explodeBtn.setStyle(pressedStyle); explodeBtn.fire(); }
                 case P -> { plantBombBtn.setStyle(pressedStyle); plantBombBtn.fire(); }
                 case K -> handleSkillKey();
@@ -203,6 +227,10 @@ public class GameController extends StackPane {
         });
         this.setOnKeyReleased(event -> {
             switch (event.getCode()) {
+                case W, A, S, D -> {
+                    heldMoveKeys.remove(event.getCode());
+                    if (heldMoveKeys.isEmpty()) stopWalkSound();
+                }
                 case O -> explodeBtn.setStyle(normalStyle);
                 case P -> plantBombBtn.setStyle(normalStyle);
                 case K -> skillBtn.setStyle(normalStyle);
@@ -275,21 +303,22 @@ public class GameController extends StackPane {
 
     private void loadAudio() {
         explodeSfx = tryLoadAudio("/sounds/explosion.mp3");
-        walkSfx    = tryLoadAudio("/sounds/walk.mp3");
-        if (walkSfx != null) walkSfx.setCycleCount(AudioClip.INDEFINITE);
+        explodeSfx.setVolume(10);
+        // ⭐️ preload walk MediaPlayer ตั้งแต่ตอนเริ่มเกม กันปัญหา async load delay
+        SoundManager.preloadWalk();
         SoundManager.playBGM("spongebobBGM.mp3");
     }
 
     private void startWalkSound() {
-        if (walkSfx == null || walkPlaying) return;
-        walkSfx.setVolume(SoundManager.getSfxVolume() / 100.0);
-        walkSfx.play();
-        walkPlaying = true;
+        if (walkPlaying) {
+            SoundManager.startWalkLoop();
+            walkPlaying = true;
+        }
     }
 
     private void stopWalkSound() {
-        if (walkSfx == null || !walkPlaying) return;
-        walkSfx.stop();
+        if (!walkPlaying) return;
+        SoundManager.stopWalkLoop();
         walkPlaying = false;
     }
 
@@ -490,6 +519,9 @@ public class GameController extends StackPane {
         if (enemyTimer     != null) enemyTimer.stop();
         if (spawnTimer     != null) spawnTimer.stop();
         if (seaweedAnimTimer != null) seaweedAnimTimer.stop();
+        // หยุดเสียงเดิน + เคลียร์ปุ่มที่กดค้าง (กันเสียงค้างตอน popup เด้ง)
+        heldMoveKeys.clear();
+        stopWalkSound();
     }
 
     private void resumeAll() {
@@ -521,8 +553,6 @@ public class GameController extends StackPane {
         playerCol = nc;
         player.setPos(playerCol, playerRow);
         spawner.setPlayerPos(playerRow, playerCol);
-
-        if (walkSfx != null) SoundManager.playSFX(walkSfx);
 
         if (buffMap[playerRow][playerCol] != null) {
             applyBuffPickup(buffMap[playerRow][playerCol]);
@@ -1037,6 +1067,10 @@ public class GameController extends StackPane {
         quitBtn.setFont(pauseMenuFont(20));
         quitBtn.setPrefSize(220, 55);
         quitBtn.setOnAction(e -> { pausePopup.close(); this.getScene().setRoot(new HomeController()); });
+
+        // ⭐️ UI sounds
+        SoundManager.attachUiSfx(resumeBtn);
+        SoundManager.attachUiSfx(quitBtn);
 
         final double POPUP_W = 600;
         final double POPUP_H = 400;

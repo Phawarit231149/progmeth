@@ -50,6 +50,11 @@ public class StageSelectController extends BorderPane {
         Button rule = createFooterButton("Rule");
         this.start = createFooterButton("Start");
 
+        // ⭐️ เสียง hover + click
+        SoundManager.attachUiSfx(back);
+        SoundManager.attachUiSfx(rule);
+        SoundManager.attachUiSfx(this.start);
+
         rule.setOnAction(e -> {
             RuleController ruleController = new RuleController();
             this.getScene().setRoot(ruleController);
@@ -195,6 +200,7 @@ public class StageSelectController extends BorderPane {
                 }
             });
             stageButtons[i] = btn;
+            SoundManager.attachUiSfx(btn);
             bar.getChildren().add(btn);
         }
 
@@ -250,6 +256,9 @@ public class StageSelectController extends BorderPane {
         Button squidWard = createSelectCharacterButton("Squidward", "characterProfile/squidwardPfp.jpg",  Element.WATER);
         Button spongeBob = createSelectCharacterButton("SpongeBob", "characterProfile/spongebobPfp.jpg",  Element.ELECTRIC);
         characterBox.getChildren().addAll(patrick, squidWard, spongeBob);
+        SoundManager.attachUiSfx(patrick);
+        SoundManager.attachUiSfx(squidWard);
+        SoundManager.attachUiSfx(spongeBob);
 
         Label choosingCharacter = new Label("Character   None");
         choosingCharacter.setFont(pixelFont(20));

@@ -1,6 +1,8 @@
 package game.util;
 
-import javafx.scene.media.AudioClip; // ใช้ AudioClip สำหรับ SFX
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import java.net.URL;
@@ -15,9 +17,16 @@ public class SoundManager {
     private static String currentBgmFile = null;   // ติดตามไฟล์ BGM ปัจจุบัน
     private static AudioClip currentStinger = null; // ติดตามเสียง win/lose
 
+    // ⭐️ Walk loop ใช้ MediaPlayer (ลู้ปแน่นอนกว่า AudioClip)
+    private static MediaPlayer walkLoop = null;
+
+    // ⭐️ UI SFX clips (โหลดครั้งเดียว ใช้ตลอด)
+    private static AudioClip clickClip = null;
+    private static AudioClip hoverClip = null;
+
     public static double getOverallVolume() { return overallVolume; }
-    public static double getSfxVolume() { return sfxVolume; }
-    public static double getMusicVolume() { return musicVolume; }
+    public static double getSfxVolume()     { return sfxVolume; }
+    public static double getMusicVolume()   { return musicVolume; }
 
     public static void setOverallVolume(double volume) {
         overallVolume = volume;
@@ -25,6 +34,8 @@ public class SoundManager {
 
     public static void setSfxVolume(double volume) {
         sfxVolume = volume;
+        // อัปเดต volume ของ walk loop ทันทีถ้ากำลังเล่นอยู่
+        if (walkLoop != null) walkLoop.setVolume(sfxVolume / 100.0);
     }
 
     public static void setMusicVolume(double volume) {
@@ -70,7 +81,6 @@ public class SoundManager {
     /** เล่นเสียงครั้งเดียวไม่วนซ้ำ — เหมาะกับเสียงชนะ/แพ้ (win.mp3, lose.mp3) */
     public static void playOneShot(String fileName) {
         try {
-            // หยุดเสียงเดิมก่อน (ถ้ามี)
             stopOneShot();
 
             URL resource = SoundManager.class.getResource("/sounds/" + fileName);
@@ -102,15 +112,122 @@ public class SoundManager {
         currentBgmFile = null;
     }
 
+    /** เล่น AudioClip SFX ทั่วไป — ใช้ระดับเสียง sfxVolume */
     public static void playSFX(AudioClip sfx) {
         if (sfx != null) {
             try {
-                // ตั้งค่าความดังตามสไลเดอร์ SFX (0.0 - 1.0)
                 sfx.setVolume(sfxVolume / 100.0);
                 sfx.play();
             } catch (Exception e) {
                 System.out.println("SFX Playback Error: " + e.getMessage());
             }
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⭐️ WALK LOOP — ใช้ MediaPlayer ลู้ปแน่นอน
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** track ว่าตอนนี้ "อยู่ในสถานะกำลังเดิน" หรือไม่ */
+    private static boolean walkActive = false;
+
+    /**
+     * Preload walk MediaPlayer + เริ่มเล่นทันทีที่ volume 0
+     * วิธีนี้กันปัญหา async load — เพราะ MediaPlayer พร้อมเล่นตลอดเวลา
+     * เราแค่ toggle volume เปิด/ปิดเสียง
+     */
+    public static void preloadWalk() {
+        if (walkLoop != null) return;
+        try {
+            URL resource = SoundManager.class.getResource("/sounds/walk.mp3");
+            if (resource == null) {
+                System.out.println("[Walk] หาไฟล์ walk.mp3 ไม่เจอ");
+                return;
+            }
+            System.out.println("[Walk] Loading: " + resource);
+            Media media = new Media(resource.toString());
+            walkLoop = new MediaPlayer(media);
+            walkLoop.setCycleCount(MediaPlayer.INDEFINITE);
+            walkLoop.setVolume(0);   // เริ่มที่เงียบ — เล่นในพื้นหลังตลอด
+            walkLoop.setOnReady(() -> {
+                System.out.println("[Walk] MediaPlayer READY");
+                walkLoop.play();      // เริ่มเล่น (เงียบ)
+                // ถ้ามีคำขอเดินก่อนหน้านี้แล้ว — เปิดเสียงทันที
+                if (walkActive) walkLoop.setVolume(sfxVolume / 100.0);
+            });
+            walkLoop.setOnError(() ->
+                System.out.println("[Walk] MediaPlayer error: " + walkLoop.getError()));
+        } catch (Exception e) {
+            System.out.println("[Walk] preload error: " + e.getMessage());
+        }
+    }
+
+    /** เปิดเสียงเดิน (เพิ่ม volume) */
+    public static void startWalkLoop() {
+        walkActive = true;
+        if (walkLoop == null) preloadWalk();
+        if (walkLoop == null) return;
+        walkLoop.setVolume(sfxVolume / 100.0);
+        System.out.println("[Walk] startWalkLoop, status=" + walkLoop.getStatus()
+                + ", vol=" + walkLoop.getVolume());
+    }
+
+    /** ปิดเสียงเดิน (volume 0) — MediaPlayer ยังเล่นในพื้นหลัง */
+    public static void stopWalkLoop() {
+        walkActive = false;
+        if (walkLoop != null) walkLoop.setVolume(0);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⭐️ UI BUTTON SFX (click + hover)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private static AudioClip loadClipLazy(AudioClip cached, String fileName) {
+        if (cached != null) return cached;
+        try {
+            URL resource = SoundManager.class.getResource("/sounds/" + fileName);
+            if (resource == null) {
+                System.out.println("หาไฟล์ SFX ไม่เจอ: " + fileName);
+                return null;
+            }
+            return new AudioClip(resource.toString());
+        } catch (Exception e) {
+            System.out.println("Clip load error: " + fileName + " — " + e.getMessage());
+            return null;
+        }
+    }
+
+    /** เล่นเสียง hover (slide.mp3) */
+    public static void playHover() {
+        hoverClip = loadClipLazy(hoverClip, "slide.mp3");
+        if (hoverClip != null) {
+            hoverClip.setVolume(sfxVolume / 100.0);
+            hoverClip.play();
+        }
+    }
+
+    /** เล่นเสียงคลิก (click.mp3) */
+    public static void playClick() {
+        clickClip = loadClipLazy(clickClip, "click.mp3");
+        if (clickClip != null) {
+            clickClip.setVolume(sfxVolume / 100.0);
+            clickClip.play();
+        }
+    }
+
+    /**
+     * ผูกเสียง hover + click ให้ปุ่ม / Node ใดๆ
+     * - hover (mouse enter) → slide.mp3
+     * - click → click.mp3
+     * ใช้ event filter เพื่อไม่ทับ onMouseEntered/onAction เดิม
+     */
+    public static void attachUiSfx(Node node) {
+        if (node == null) return;
+        node.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_ENTERED, ev -> {
+            if (!node.isDisabled()) playHover();
+        });
+        node.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, ev -> {
+            if (!node.isDisabled()) playClick();
+        });
     }
 }

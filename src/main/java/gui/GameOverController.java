@@ -34,6 +34,11 @@ public class GameOverController extends BorderPane {
         retry.setPrefSize(220,55);
         back.setPrefSize(220,55);
 
+        // ⭐️ UI sounds
+        SoundManager.attachUiSfx(nextStage);
+        SoundManager.attachUiSfx(retry);
+        SoundManager.attachUiSfx(back);
+
         nextStage.setOnAction(e -> {
             GameController gameController = new GameController(StageData.ALL_STAGES[config.getLevel()], name);
             this.getScene().setRoot(gameController);
