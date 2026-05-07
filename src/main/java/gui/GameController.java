@@ -1,6 +1,7 @@
 package gui;
 
 import game.Element;
+import game.bomb.Bomb;
 import game.buff.*;
 import game.character.*;
 import game.character.Character;
@@ -9,11 +10,10 @@ import game.map.Rock;
 import game.map.Seaweed;
 import game.map.Tile;
 import game.util.ElementUtil;
+import game.util.ScoreManager;
 import game.util.SoundManager;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -33,6 +33,15 @@ import javafx.util.Duration;
 import model.GameProgress;
 import model.StageData;
 
+/**
+ * GameController is responsible for:
+ *   • Wiring JavaFX timers
+ *   • Handling keyboard / mouse input
+ *   • Rendering the grid
+ *   • Delegating everything else to domain classes
+ *
+ * It does NOT contain movement AI, blast-zone math, spawn logic, or score math.
+ */
 public class GameController extends StackPane {
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -40,26 +49,30 @@ public class GameController extends StackPane {
     // ═══════════════════════════════════════════════════════════════════════
 
     private final StageData config;
-    private final String name;
-    private final Element element;
+    private final String    name;
+    private final Element   element;
 
-    // ── Player ────────────────────────────────────────────────────────────
-    private Character player;
-    private int playerRow;
-    private int playerCol;
+    // ── Domain objects ────────────────────────────────────────────────────
+    private Character    player;
+    private int          playerRow;
+    private int          playerCol;
+    private int          playerDir = 1; // 0=up 1=down 2=left 3=right
 
-    // ── Map ───────────────────────────────────────────────────────────────
-    private Tile[][]    map;
-    private Seaweed[][] seaweeds;
-    private boolean[][] hasBomb;
-    private Buff[][]    buffMap;
+    private Tile[][]     map;
+    private Seaweed[][]  seaweeds;
+    private boolean[][]  hasBomb;
+    private Buff[][]     buffMap;
+
+    private final List<Enemy> enemies = new ArrayList<>();
+    private EnemySpawner spawner;
+    private ScoreManager scoreManager;
+    private final ElementUtil elementUtil = new ElementUtil();
 
     // ── Game state ────────────────────────────────────────────────────────
     private int     hearts    = 5;
-    private int     kills     = 0;
-    private int     bombsLeft = 5;
-    private int     maxBombs  = 5;
     private int     timeLeft  = 300;
+    private int     bombsLeft;
+    private int     maxBombs;
     private boolean stopCharacter = false;
     private boolean stopEnemy     = false;
     private Status  gameStatus;
@@ -69,13 +82,20 @@ public class GameController extends StackPane {
     private int bombRangeCount  = 0;
     private int bombDamageCount = 0;
 
-    // ── UI references ─────────────────────────────────────────────────────
-    private Label   killLabel;
-    private Label   timerLabel;
-    private HBox    heartsBox;
-    private Label   bombLabel;
+    // ── Timers ────────────────────────────────────────────────────────────
+    private Timeline timer;
+    private Timeline enemyTimer;
+    private Timeline spawnTimer;
+    private Timeline seaweedAnimTimer;
+    private int seaweedFrame = 0;
+
+    // ── UI ────────────────────────────────────────────────────────────────
+    private Label      killLabel;
+    private Label      timerLabel;
+    private HBox       heartsBox;
+    private Label      bombLabel;
     private Button[][] cells;
-    private double  cellSize;
+    private double     cellSize;
 
     private Label maxBombBadge;
     private Label bombRangeBadge;
@@ -92,66 +112,43 @@ public class GameController extends StackPane {
     private final String pressedStyle = "-fx-background-radius: 40; -fx-border-color: red; -fx-border-width: 3px; -fx-border-radius: 40;";
     private String baseStyle          = "-fx-background-color: #dcedc8; -fx-border-color: #aed581;";
 
-    // ── Timers ────────────────────────────────────────────────────────────
-    private Timeline timer;
-    private Timeline enemyTimer;
-    private Timeline spawnTimer;
-
-    // ── Images — directional sprites: index 0=up(Back), 1=down(Front), 2=left, 3=right ──
-    private Image[] spongebobImgs;
-    private Image[] patrickImgs;
-    private Image[] squidWardImgs;
-    // Enemy images
-    private Image[] npcImgs;             // Easy enemy
-    private Image[] mrKrabImgs;          // Medium FIRE
-    private Image[] garyImgs;            // Medium WATER
-    private Image[] sandyImgs;           // Medium ELECTRIC
-    private Image[] kingNeptuneImgs;     // Hard enemy
-    private Image spawnImg;
-    private Image rockImg;
-    private Image woodEdgeImg;           // frame around the player's tile
-    private Image[] seaweedImgs;         // 2 frames for animation
-    private int seaweedFrame = 0;        // 0 or 1 — toggled every 0.5 s
-    private Timeline seaweedAnimTimer;
-    // Player facing direction: 0=up, 1=down, 2=left, 3=right (default facing down)
-    private int playerDir = 1;
-    private Image bombImg;
-    private Image maxBombImg;
-    private Image bombRangeImg;
-    private Image bombDamageImg;
-    private Image bubbleShieldImg;
-    private Image healImg;
-
-    // ── Popups ────────────────────────────────────────────────────────────
     private Stage infoPopup;
     private Stage pausePopup;
 
-    // ── Enemies ───────────────────────────────────────────────────────────
-    private List<Enemy> enemies      = new ArrayList<>();
-    private int  totalSpawned        = 0;
-    private int  stagePhase          = 1;
-    private boolean phase2Started    = false;
-
-    private static final int[] DR = {-1, 1,  0, 0};
-    private static final int[] DC = { 0, 0, -1, 1};
+    // ── Images ────────────────────────────────────────────────────────────
+    private Image[] spongebobImgs;
+    private Image[] patrickImgs;
+    private Image[] squidWardImgs;
+    private Image[] npcImgs;
+    private Image[] mrKrabImgs;
+    private Image[] garyImgs;
+    private Image[] sandyImgs;
+    private Image[] kingNeptuneImgs;
+    private Image   spawnImg;
+    private Image   rockImg;
+    private Image   woodEdgeImg;
+    private Image[] seaweedImgs;
+    private Image   bombImg;
+    private Image   maxBombImg;
+    private Image   bombRangeImg;
+    private Image   bombDamageImg;
+    private Image   bubbleShieldImg;
+    private Image   healImg;
 
     // ── Audio ─────────────────────────────────────────────────────────────
     private AudioClip explodeSfx;
-
-    // ── Utilities ─────────────────────────────────────────────────────────
-    private final ElementUtil elementUtil = new ElementUtil();
 
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════
 
     public GameController(StageData config, String name) {
-        this.config = config;
-        this.name   = name;
+        this.config  = config;
+        this.name    = name;
         this.element = switch (name) {
-            case "Patrick"  -> Element.FIRE;
-            case "Squidward"-> Element.WATER;
-            default         -> Element.ELECTRIC; // SpongeBob
+            case "Patrick"   -> Element.FIRE;
+            case "Squidward" -> Element.WATER;
+            default          -> Element.ELECTRIC;
         };
 
         loadImages();
@@ -195,132 +192,6 @@ public class GameController extends StackPane {
     // INITIALISATION
     // ═══════════════════════════════════════════════════════════════════════
 
-    private void loadImages() {
-        // Players — directional sprites
-        spongebobImgs   = loadDirectional("spongebob",   "Sponge",    "Front");
-        patrickImgs     = loadDirectional("patrick",     "Patrick",   "Front");
-        squidWardImgs   = loadDirectional("squidword",   "SquidWord", "Font");
-
-        // Enemies — directional sprites
-        npcImgs         = loadDirectional("npc",         "Npc",       "Font");
-        mrKrabImgs      = loadDirectional("mrkrab",      "MrKrab",    "Font");
-        garyImgs        = loadDirectional("gary",        "Gary",      "Font");
-        sandyImgs       = loadDirectional("sandy",       "Sandy",     "Font");
-        kingNeptuneImgs = loadDirectional("kingneptune", "KingNep",   "Front");
-
-        spawnImg     = tryLoadImage("/images/gamePlay/spawn/spawn.png");
-        rockImg      = tryLoadImage("/images/gamePlay/rock/Rock.png");
-        woodEdgeImg  = tryLoadImage("/images/gamePlay/WoodEdge/WoodEdge.png");
-
-        // Seaweed: 2 frames for animation
-        seaweedImgs = new Image[]{
-                tryLoadImage("/images/gamePlay/seaweed/seaweed_0.png"),
-                tryLoadImage("/images/gamePlay/seaweed/seaweed_1.png")
-        };
-
-        bombImg        = tryLoadImage("/images/gamePlay/bomb.png");
-        maxBombImg     = tryLoadImage("/images/buffIcon/increaseMaximumBomb.png");
-        bombRangeImg   = tryLoadImage("/images/buffIcon/increaseBombRange.png");
-        bombDamageImg  = tryLoadImage("/images/buffIcon/increaseBombDamage.png");
-        bubbleShieldImg= tryLoadImage("/images/buffIcon/bubbleShield.png");
-        healImg        = tryLoadImage("/images/buffIcon/heal.png");
-    }
-
-    /**
-     * Loads 4-directional sprites for one character.
-     * index: 0=up(Back), 1=down(Front/Font), 2=left, 3=right
-     */
-    private Image[] loadDirectional(String folder, String prefix, String downSuffix) {
-        Image[] arr = new Image[4];
-        arr[0] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Back.png");
-        arr[1] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + downSuffix + ".png");
-        arr[2] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Left.png");
-        arr[3] = tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Right.png");
-        return arr;
-    }
-
-    /** Starts the timer that alternates seaweed frames every 0.5 seconds. */
-    private void startSeaweedAnimation() {
-        seaweedAnimTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> {
-            seaweedFrame = 1 - seaweedFrame;
-            for (int r = 0; r < config.getRows(); r++) {
-                for (int c = 0; c < config.getCols(); c++) {
-                    if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
-                        styleCell(r, c);
-                    }
-                }
-            }
-        }));
-        seaweedAnimTimer.setCycleCount(Timeline.INDEFINITE);
-        seaweedAnimTimer.play();
-    }
-
-    private void loadAudio() {
-        explodeSfx = tryLoadAudio("/sounds/explosion.mp3");
-    }
-
-    private Image tryLoadImage(String path) {
-        try {
-            var url = getClass().getResource(path);
-            if (url == null) { System.out.println("[Image] NOT FOUND: " + path); return null; }
-            return new Image(url.toExternalForm());
-        } catch (Exception e) {
-            System.out.println("[Image] ERROR: " + path + " → " + e.getMessage());
-            return null;
-        }
-    }
-
-    private AudioClip tryLoadAudio(String path) {
-        try {
-            var url = getClass().getResource(path);
-            if (url == null) { System.out.println("[Audio] NOT FOUND: " + path); return null; }
-            return new AudioClip(url.toExternalForm());
-        } catch (Exception e) {
-            System.out.println("[Audio] ERROR: " + path + " → " + e.getMessage());
-            return null;
-        }
-    }
-
-    /** Creates an ImageView sized to fit inside a cell. */
-    private ImageView makeCellImage(Image img) {
-        ImageView iv = new ImageView(img);
-        double size = Math.max(cellSize - 4, 8);
-        iv.setFitWidth(size);
-        iv.setFitHeight(size);
-        iv.setPreserveRatio(true);
-        return iv;
-    }
-
-    /**
-     * Creates the graphic for the player's tile:
-     * WoodEdge.png as an outer frame with the player sprite centred on top.
-     */
-    private StackPane makePlayerCellGraphic(Image playerImg) {
-        StackPane stack = new StackPane();
-
-        if (woodEdgeImg != null) {
-            ImageView edge = new ImageView(woodEdgeImg);
-            double frameSize = Math.max(cellSize - 2, 8);
-            edge.setFitWidth(frameSize);
-            edge.setFitHeight(frameSize);
-            edge.setPreserveRatio(false);
-            edge.setSmooth(false);
-            stack.getChildren().add(edge);
-        }
-
-        if (playerImg != null) {
-            ImageView pv = new ImageView(playerImg);
-            double playerSize = Math.max(cellSize - 14, 8);
-            pv.setFitWidth(playerSize);
-            pv.setFitHeight(playerSize);
-            pv.setPreserveRatio(true);
-            pv.setSmooth(false);
-            stack.getChildren().add(pv);
-        }
-
-        return stack;
-    }
-
     private void createPlayer() {
         player = switch (element) {
             case FIRE     -> new FireCharacter(5, 1, 1, 5);
@@ -332,6 +203,8 @@ public class GameController extends StackPane {
         playerRow = spawn[0];
         playerCol = spawn[1];
         player.setPos(playerCol, playerRow);
+        maxBombs  = player.getMaxBombs();
+        bombsLeft = maxBombs;
     }
 
     private void setupMap() {
@@ -345,7 +218,7 @@ public class GameController extends StackPane {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 map[r][c] = new Tile(r, c);
-                char ch = config.tileAt(r, c);
+                char ch   = config.tileAt(r, c);
                 if (ch == 'R') {
                     map[r][c] = new Rock(r, c);
                 } else if (ch == 'S') {
@@ -360,6 +233,7 @@ public class GameController extends StackPane {
             }
         }
 
+        // Guarantee at least one of each buff type
         Class<?>[] guaranteed = { MaxBombBuff.class, BombRangeBuff.class,
                 BombDamageBuff.class, HealBuff.class, ShieldBuff.class };
         for (Class<?> type : guaranteed) {
@@ -388,100 +262,87 @@ public class GameController extends StackPane {
         return null;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // SKILL HANDLING
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private void handleSkillKey() {
-        if (player.isSkillReady()) skillBtn.setStyle(pressedStyle);
-
-        if (player instanceof FireCharacter fire && fire.isSkillReady()) {
-            activateFireTeleport(fire);
-        } else if (player instanceof WaterCharacter water && water.isSkillReady()) {
-            activateWaterShield(water);
-        } else if (player instanceof ElectricCharacter electric && electric.isSkillReady()) {
-            activateElectricStun(electric);
-        }
+    private void setupEnemies() {
+        scoreManager = new ScoreManager(config.getGoal());
+        spawner = new EnemySpawner(config, enemies, map, seaweeds, hasBomb);
+        spawner.setPlayerPos(playerRow, playerCol);
+        spawner.setupInitial();
     }
 
-    private void activateFireTeleport(FireCharacter fire) {
-        stopEnemy     = true;
-        stopCharacter = true;
-        timer.stop();
-        fire.useSkill();
-        setGridStyle("-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;");
+    // ═══════════════════════════════════════════════════════════════════════
+    // TIMERS
+    // ═══════════════════════════════════════════════════════════════════════
 
-        Timeline disarm = new Timeline(new KeyFrame(Duration.seconds(5), e -> {
-            if (fire.isTeleportArmed()) {
-                fire.cancelTeleport();
-                resetGridStyle();
-                timer.play();
-                stopEnemy     = false;
-                stopCharacter = false;
+    private void startTimer() {
+        timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            if (timeLeft <= 0) { pauseAll(); setGameStatus(Status.LOSE); gameOver(); return; }
+            timeLeft--;
+            int m = timeLeft / 60, s = timeLeft % 60;
+            timerLabel.setText(m + ":" + (s < 10 ? "0" : "") + s);
+            if (timeLeft <= 30)
+                timerLabel.setStyle(timerLabel.getStyle() + "-fx-text-fill: #e53935;");
+            if (scoreManager.hasReachedGoal()) {
+                setGameStatus(config.getLevel() == 5 ? Status.CLEAR : Status.WIN);
+                gameOver();
             }
+            updateSkillButtonUI();
         }));
-        disarm.play();
+        timer.setCycleCount(Timeline.INDEFINITE);
+        resumeAll();
     }
 
-    private void activateWaterShield(WaterCharacter water) {
-        water.useSkill();
-        styleCell(playerRow, playerCol);
-        skillBtn.setDisable(true);
-        activateShieldBadge();
+    private void startEnemyTimer() {
+        enemyTimer = new Timeline(new KeyFrame(Duration.millis(600), e -> {
+            spawner.setPlayerPos(playerRow, playerCol);
+            for (Enemy en : enemies)
+                en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
+                        config.getRows(), config.getCols());
+            renderGrid();
+            checkPlayerEnemyCollision();
+        }));
+        enemyTimer.setCycleCount(Timeline.INDEFINITE);
+        enemyTimer.play();
     }
 
-    private void activateElectricStun(ElectricCharacter electric) {
-        stopEnemy = true;
-        setGridStyle("-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;");
-
-        Timeline unstun = new Timeline(new KeyFrame(
-                Duration.millis(ElectricCharacter.getStunDurationMs()),
-                e -> {
-                    stopEnemy = false;
-                    resetGridStyle();
-                }
-        ));
-        unstun.play();
-        electric.useSkill();
+    private void startSpawnTimer() {
+        spawnTimer = new Timeline(new KeyFrame(Duration.seconds(10), e -> {
+            spawner.setPlayerPos(playerRow, playerCol);
+            if (spawner.tick()) renderGrid();
+        }));
+        spawnTimer.setCycleCount(Timeline.INDEFINITE);
+        spawnTimer.play();
     }
 
-    /** Apply a uniform style to every cell (e.g. stun/teleport visual). */
-    private void setGridStyle(String style) {
-        setBaseStyle(style);
-        for (int r = 0; r < config.getRows(); r++)
-            for (int c = 0; c < config.getCols(); c++)
-                cells[r][c].setStyle(style);
+    private void startSeaweedAnimation() {
+        seaweedAnimTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> {
+            seaweedFrame = 1 - seaweedFrame;
+            for (int r = 0; r < config.getRows(); r++)
+                for (int c = 0; c < config.getCols(); c++)
+                    if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed())
+                        styleCell(r, c);
+        }));
+        seaweedAnimTimer.setCycleCount(Timeline.INDEFINITE);
+        seaweedAnimTimer.play();
     }
 
-    private void resetGridStyle() {
-        setBaseStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
-        for (int r = 0; r < config.getRows(); r++)
-            for (int c = 0; c < config.getCols(); c++)
-                cells[r][c].setStyle(baseStyle);
+    private void pauseAll() {
+        if (timer          != null) timer.stop();
+        if (enemyTimer     != null) enemyTimer.stop();
+        if (spawnTimer     != null) spawnTimer.stop();
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // SHIELD BADGE
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private void activateShieldBadge() {
-        shieldBadge.setText("✓");
-        shieldBadge.setStyle(ShieldBadgeStyle.ACTIVE);
-        shieldBadge.setVisible(true);
-    }
-
-    private void deactivateShieldBadge() {
-        shieldBadge.setText("✗");
-        shieldBadge.setStyle(ShieldBadgeStyle.INACTIVE);
-        shieldBadge.setVisible(true);
+    private void resumeAll() {
+        if (timer          != null) timer.play();
+        if (enemyTimer     != null) enemyTimer.play();
+        if (spawnTimer     != null) spawnTimer.play();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // MOVEMENT & BUFF PICKUP
+    // INPUT — MOVEMENT
     // ═══════════════════════════════════════════════════════════════════════
 
     private void tryMove(int dr, int dc) {
-        // Update facing direction even if the move is blocked
+        // Always update facing direction, even when blocked
         if      (dr == -1) playerDir = 0;
         else if (dr ==  1) playerDir = 1;
         else if (dc == -1) playerDir = 2;
@@ -491,13 +352,14 @@ public class GameController extends StackPane {
         int nc = playerCol + dc;
         if (nr < 0 || nr >= config.getRows()) { renderGrid(); return; }
         if (nc < 0 || nc >= config.getCols()) { renderGrid(); return; }
-        if (!map[nr][nc].isPassable()) { renderGrid(); return; }
+        if (!map[nr][nc].isPassable())         { renderGrid(); return; }
         if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) { renderGrid(); return; }
-        if (hasBomb[nr][nc]) { renderGrid(); return; }
+        if (hasBomb[nr][nc])                   { renderGrid(); return; }
 
         playerRow = nr;
         playerCol = nc;
         player.setPos(playerCol, playerRow);
+        spawner.setPlayerPos(playerRow, playerCol);
 
         if (buffMap[playerRow][playerCol] != null) {
             applyBuffPickup(buffMap[playerRow][playerCol]);
@@ -508,7 +370,6 @@ public class GameController extends StackPane {
         renderGrid();
     }
 
-    /** Separated from tryMove so the pickup logic is easy to read and extend. */
     private void applyBuffPickup(Buff buff) {
         buff.apply(player);
 
@@ -532,7 +393,7 @@ public class GameController extends StackPane {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // BOMB PLANTING & EXPLODING
+    // INPUT — BOMBS
     // ═══════════════════════════════════════════════════════════════════════
 
     private void plantBombAtPlayer() {
@@ -544,46 +405,35 @@ public class GameController extends StackPane {
     }
 
     private void explodeBombs() {
-        int rows  = config.getRows();
-        int cols  = config.getCols();
-        int range = player.getBombRange();
-        boolean[][] blastZone = new boolean[rows][cols];
-        boolean playerHit = false;
+        int rows = config.getRows(), cols = config.getCols();
+        boolean playerHit    = false;
+        boolean anyBombPlaced = bombsLeft < maxBombs;
 
-        if (bombsLeft < maxBombs && explodeSfx != null) SoundManager.playSFX(explodeSfx);
+        if (anyBombPlaced && explodeSfx != null) SoundManager.playSFX(explodeSfx);
 
+        // Merge blast zones from all placed bombs
+        boolean[][] totalZone = new boolean[rows][cols];
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 if (!hasBomb[r][c]) continue;
-                blastZone[r][c] = true;
-
-                int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
-                for (int[] d : dirs) {
-                    for (int step = 1; step <= range; step++) {
-                        int rr = r + d[0] * step;
-                        int cc = c + d[1] * step;
-                        if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) break;
-                        if (map[rr][cc] instanceof Rock) break;
-                        blastZone[rr][cc] = true;
-                        if (seaweeds[rr][cc] != null && !seaweeds[rr][cc].isDestroyed()) {
-                            seaweeds[rr][cc].destroy();
-                            break;
-                        }
-                        if (!playerHit && rr == playerRow && cc == playerCol) {
-                            playerHit = true;
-                            applyBlastDamageToPlayer();
-                        }
-                    }
-                }
-                if (!playerHit && r == playerRow && c == playerCol) {
-                    playerHit = true;
-                    applyBlastDamageToPlayer();
-                }
+                Bomb bomb = new Bomb(r, c, player.getBombRange(), player.getDamage(), player);
+                boolean[][] zone = bomb.computeBlastZone(map, seaweeds, rows, cols);
+                for (int rr = 0; rr < rows; rr++)
+                    for (int cc = 0; cc < cols; cc++)
+                        if (zone[rr][cc]) totalZone[rr][cc] = true;
             }
         }
 
-        applyBlastDamageToEnemies(blastZone);
+        // Player hit?
+        if (totalZone[playerRow][playerCol] && !playerHit) {
+            playerHit = true;
+            applyBlastDamageToPlayer();
+        }
 
+        // Enemy hits
+        applyBlastDamageToEnemies(totalZone);
+
+        // Reset bomb state
         for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
                 hasBomb[r][c] = false;
@@ -591,33 +441,29 @@ public class GameController extends StackPane {
         bombsLeft = maxBombs;
         updateBombLabel();
         renderGrid();
-        applyExplosionEffect(blastZone);
+        applyExplosionEffect(totalZone);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DAMAGE
+    // ═══════════════════════════════════════════════════════════════════════
 
     private void applyBlastDamageToPlayer() {
         if (player.hasShield()) {
             player.setShield(false);
             deactivateShieldBadge();
         } else {
-            hearts -= player.getDamage();
+            hearts = Math.max(0, hearts - player.getDamage());
             updateHearts();
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // ENEMY DAMAGE & COLLISION
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private void applyBlastDamageToEnemies(boolean[][] blastZone) {
-        int rows = config.getRows();
-        int cols = config.getCols();
-        Iterator<Enemy> it = enemies.iterator();
-
+    private void applyBlastDamageToEnemies(boolean[][] zone) {
+        int rows = config.getRows(), cols = config.getCols();
+        var it = enemies.iterator();
         while (it.hasNext()) {
-            Enemy en  = it.next();
-            boolean hit = isEnemyInBlastZone(en, blastZone, rows, cols);
-            if (!hit) continue;
-
+            Enemy en = it.next();
+            if (!en.isInBlastZone(zone, rows, cols)) continue;
             if (en.isShielded()) { en.setShielded(false); continue; }
 
             int dmg = elementUtil.calculateCharacterDamage(player, en);
@@ -625,34 +471,30 @@ public class GameController extends StackPane {
 
             if (en.getHealth() <= 0) {
                 it.remove();
-                kills++;
-                if (killLabel != null) killLabel.setText(kills + " / " + config.getGoal());
-                if (kills >= config.getGoal()) {
+                scoreManager.addKill();
+                updateKillLabel();
+                if (scoreManager.hasReachedGoal()) {
                     setGameStatus(config.getLevel() == 5 ? Status.CLEAR : Status.WIN);
                     gameOver();
                     return;
                 }
+                // Stage 5 phase-2 trigger
+                if (config.getLevel() == 5 && !spawner.isPhase2Started()
+                        && scoreManager.getScore() >= 25) {
+                    triggerPhase2();
+                }
             }
         }
-
-        if (killLabel != null) killLabel.setText(kills + " / " + config.getGoal());
-
-        if (config.getLevel() == 5 && !phase2Started && kills >= 25) {
-            triggerStage5Phase2();
-        }
+        updateKillLabel();
     }
 
-    private boolean isEnemyInBlastZone(Enemy en, boolean[][] zone, int rows, int cols) {
-        if (en.getLevel() == Level.HARD) {
-            for (int dr = 0; dr < 2; dr++)
-                for (int dc = 0; dc < 2; dc++) {
-                    int rr = en.getPosY() + dr, cc = en.getPosX() + dc;
-                    if (rr >= 0 && rr < rows && cc >= 0 && cc < cols && zone[rr][cc]) return true;
-                }
-            return false;
+    private void checkPlayerEnemyCollision() {
+        for (Enemy e : enemies) {
+            if (e.occupiesTile(playerRow, playerCol)) {
+                damageFromEnemy(e);
+                return;
+            }
         }
-        int r = en.getPosY(), c = en.getPosX();
-        return r >= 0 && r < rows && c >= 0 && c < cols && zone[r][c];
     }
 
     private void damageFromEnemy(Enemy e) {
@@ -666,330 +508,105 @@ public class GameController extends StackPane {
         updateHearts();
     }
 
-    private void checkPlayerEnemyCollision() {
-        for (Enemy e : enemies) {
-            if (enemyOccupiesTile(e, playerRow, playerCol)) {
-                damageFromEnemy(e);
-                return;
-            }
-        }
-    }
+    private void triggerPhase2() {
+        if (!spawner.triggerPhase2()) return;
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // ENEMY SETUP & AI
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private void setupEnemies() {
-        enemies       = new ArrayList<>();
-        totalSpawned  = 0;
-        stagePhase    = 1;
-        phase2Started = false;
-
-        switch (config.getLevel()) {
-            case 1 -> spawnInitialEasy(5);
-            case 2 -> spawnInitialMedium(7, false);
-            case 3 -> spawnInitialMedium(5, true);
-            case 4 -> spawnInitialMedium(7, true);
-            case 5 -> spawnInitialMedium(10, false);
-        }
-    }
-
-    private void spawnInitialEasy(int count) {
-        for (int i = 0; i < count; i++) {
-            int[] pos = randomWalkableNotNearPlayer(3);
-            if (pos == null) break;
-            enemies.add(new EasyEnemy(1, pos[1], pos[0], false));
-            totalSpawned++;
-        }
-    }
-
-    private void spawnInitialMedium(int count, boolean someShielded) {
-        for (int i = 0; i < count; i++) {
-            int[] pos = randomWalkableNotNearPlayer(3);
-            if (pos == null) break;
-            enemies.add(new MediumEnemy(1, pos[1], pos[0], randomElement(), someShielded && Math.random() < 0.4));
-            totalSpawned++;
-        }
-    }
-
-    private void startSpawnTimer() {
-        spawnTimer = new Timeline(new KeyFrame(Duration.seconds(10), e -> tickSpawn()));
-        spawnTimer.setCycleCount(Timeline.INDEFINITE);
-        spawnTimer.play();
-    }
-
-    private void tickSpawn() {
-        int level = config.getLevel();
-        if (level == 5 && stagePhase == 2) {
-            if (totalSpawned < 30) spawnHardRandom();
-            return;
-        }
-        if (totalSpawned < phase1Cap(level)) {
-            spawnMediumAtSpawnPoint(level == 3 || level == 4);
-        }
-    }
-
-    private int phase1Cap(int level) {
-        return switch (level) { case 1 -> 10; case 2 -> 15; case 3 -> 20; case 4 -> 25; default -> 25; };
-    }
-
-    private void spawnMediumAtSpawnPoint(boolean canShield) {
-        List<int[]> spawns = new ArrayList<>(config.getEnemySpawns());
-        if (spawns.isEmpty()) {
-            int[] pos = randomWalkableNotNearPlayer(3);
-            if (pos != null) addMedium(pos[0], pos[1], canShield);
-            return;
-        }
-        Collections.shuffle(spawns);
-        for (int[] s : spawns) {
-            if (isTileFreeForSpawn(s[0], s[1])) { addMedium(s[0], s[1], canShield); return; }
-        }
-    }
-
-    private void addMedium(int row, int col, boolean canShield) {
-        enemies.add(new MediumEnemy(1, col, row, randomElement(), canShield && Math.random() < 0.4));
-        totalSpawned++;
-        renderGrid();
-    }
-
-    private void spawnHardRandom() {
-        int rows = config.getRows(), cols = config.getCols();
-        for (int i = 0; i < 300; i++) {
-            int r = (int)(Math.random() * (rows - 1));
-            int c = (int)(Math.random() * (cols - 1));
-            if (!canHardOccupy(r, c)) continue;
-            if (Math.abs(r - playerRow) + Math.abs(c - playerCol) < 3) continue;
-            enemies.add(new HardEnemy(2, c, r, randomElement(), false));
-            totalSpawned++;
-            renderGrid();
-            return;
-        }
-    }
-
-    private void triggerStage5Phase2() {
-        if (config.getLevel() != 5 || phase2Started) return;
-        phase2Started = true;
-        stagePhase    = 2;
-
-        int rows = config.getRows(), cols = config.getCols();
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                if (map[r][c] instanceof Rock) map[r][c] = new Tile(r, c);
-                if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) seaweeds[r][c].destroy();
-            }
-        }
-        spawnHardRandom();
-        spawnHardRandom();
-
+        // Re-wire spawn timer to 30-second interval for phase 2
         spawnTimer.stop();
-        spawnTimer.getKeyFrames().setAll(new KeyFrame(Duration.seconds(30), e -> tickSpawn()));
+        spawnTimer.getKeyFrames().setAll(new KeyFrame(Duration.seconds(30), e -> {
+            spawner.setPlayerPos(playerRow, playerCol);
+            if (spawner.tick()) renderGrid();
+        }));
         spawnTimer.play();
         renderGrid();
     }
 
-    private void startEnemyTimer() {
-        enemyTimer = new Timeline(new KeyFrame(Duration.millis(600), e -> {
-            for (Enemy en : enemies) moveEnemy(en);
-            renderGrid();
-            checkPlayerEnemyCollision();
-        }));
-        enemyTimer.setCycleCount(Timeline.INDEFINITE);
-        enemyTimer.play();
-    }
-
-    private void moveEnemy(Enemy e) {
-        if (stopEnemy) return;
-        if (e.getLevel() == Level.HARD) moveHardFollowPlayer(e);
-        else moveRandom(e);
-    }
-
-    private void moveRandom(Enemy e) {
-        int dir = e.getCurrentDir();
-        int r = e.getPosY(), c = e.getPosX();
-
-        int nr = r + DR[dir], nc = c + DC[dir];
-        if (canEnemyWalk(nr, nc, e)) {
-            e.setCurrentDir(dir);
-            e.setPosY(nr);
-            e.setPosX(nc);
-            return;
-        }
-
-        int reverse = dir ^ 1;
-        List<Integer> options = new ArrayList<>();
-        for (int d = 0; d < 4; d++) {
-            if (d == dir || d == reverse) continue;
-            if (canEnemyWalk(r + DR[d], c + DC[d], e)) options.add(d);
-        }
-
-        int newDir;
-        if (!options.isEmpty()) {
-            newDir = options.get((int)(Math.random() * options.size()));
-        } else if (canEnemyWalk(r + DR[reverse], c + DC[reverse], e)) {
-            newDir = reverse;
-        } else {
-            return;
-        }
-        e.setCurrentDir(newDir);
-        e.setPosY(r + DR[newDir]);
-        e.setPosX(c + DC[newDir]);
-    }
-
-    private void moveHardFollowPlayer(Enemy e) {
-        int r = e.getPosY(), c = e.getPosX();
-        int bestDir = -1, bestDist = Integer.MAX_VALUE;
-
-        int[] order = {0, 1, 2, 3};
-        for (int i = 3; i > 0; i--) {
-            int j = (int)(Math.random() * (i + 1));
-            int t = order[i]; order[i] = order[j]; order[j] = t;
-        }
-
-        for (int d : order) {
-            int nr = r + DR[d], nc = c + DC[d];
-            if (!canHardWalk(nr, nc, e)) continue;
-            int dist = Math.abs(nr - playerRow) + Math.abs(nc - playerCol);
-            if (dist < bestDist) { bestDist = dist; bestDir = d; }
-        }
-
-        if (bestDir >= 0) {
-            e.setCurrentDir(bestDir);
-            e.setPosY(r + DR[bestDir]);
-            e.setPosX(c + DC[bestDir]);
-        }
-    }
-
-    // ── Enemy position helpers ─────────────────────────────────────────────
-
-    private boolean enemyOccupiesTile(Enemy e, int r, int c) {
-        int er = e.getPosY(), ec = e.getPosX();
-        if (e.getLevel() == Level.HARD) return (r == er || r == er + 1) && (c == ec || c == ec + 1);
-        return r == er && c == ec;
-    }
-
-    /** Returns the enemy occupying tile (r,c), or null if none. */
-    private Enemy enemyAt(int r, int c) {
-        for (Enemy e : enemies) if (enemyOccupiesTile(e, r, c)) return e;
-        return null;
-    }
-
-    private boolean canEnemyWalk(int r, int c, Enemy self) {
-        if (r < 0 || r >= config.getRows() || c < 0 || c >= config.getCols()) return false;
-        if (map[r][c] instanceof Rock) return false;
-        if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) return false;
-        if (hasBomb[r][c]) return false;
-        for (Enemy o : enemies) if (o != self && enemyOccupiesTile(o, r, c)) return false;
-        return true;
-    }
-
-    private boolean canHardWalk(int nr, int nc, Enemy self) {
-        int rows = config.getRows(), cols = config.getCols();
-        if (nr < 0 || nr + 1 >= rows || nc < 0 || nc + 1 >= cols) return false;
-        for (int dr = 0; dr < 2; dr++)
-            for (int dc = 0; dc < 2; dc++)
-                if (!canEnemyWalk(nr + dr, nc + dc, self)) return false;
-        return true;
-    }
-
-    private boolean isTileFreeForSpawn(int r, int c) {
-        if (r < 0 || r >= config.getRows() || c < 0 || c >= config.getCols()) return false;
-        if (map[r][c] instanceof Rock) return false;
-        if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) return false;
-        if (hasBomb[r][c]) return false;
-        if (r == playerRow && c == playerCol) return false;
-        for (Enemy e : enemies) if (enemyOccupiesTile(e, r, c)) return false;
-        return true;
-    }
-
-    private boolean canHardOccupy(int r, int c) {
-        for (int dr = 0; dr < 2; dr++)
-            for (int dc = 0; dc < 2; dc++)
-                if (!isTileFreeForSpawn(r + dr, c + dc)) return false;
-        return true;
-    }
-
-    private int[] randomWalkableNotNearPlayer(int minDist) {
-        int rows = config.getRows(), cols = config.getCols();
-        for (int i = 0; i < 200; i++) {
-            int r = (int)(Math.random() * rows);
-            int c = (int)(Math.random() * cols);
-            if (!isTileFreeForSpawn(r, c)) continue;
-            if (Math.abs(r - playerRow) + Math.abs(c - playerCol) < minDist) continue;
-            return new int[]{r, c};
-        }
-        return null;
-    }
-
-    private Element randomElement() {
-        Element[] e = {Element.FIRE, Element.WATER, Element.ELECTRIC};
-        return e[(int)(Math.random() * e.length)];
-    }
-
-    /** Returns the correct directional image for an enemy based on its level, element and current direction. */
-    private Image enemyImage(Enemy e) {
-        int dir = clampDir(e.getCurrentDir());
-        Image[] set;
-        Level lvl = e.getLevel();
-        if (lvl == null) {
-            set = npcImgs;
-        } else {
-            set = switch (lvl) {
-                case EASY -> npcImgs;
-                case HARD -> kingNeptuneImgs;
-                case MEDIUM -> {
-                    if (e.getElement() == null) yield mrKrabImgs;
-                    yield switch (e.getElement()) {
-                        case WATER    -> garyImgs;
-                        case ELECTRIC -> sandyImgs;
-                        default       -> mrKrabImgs;
-                    };
-                }
-            };
-        }
-        return pickDirImage(set, dir);
-    }
-
-    /**
-     * Picks from a 4-directional image array.
-     * Falls back to the first non-null image if the requested direction is missing.
-     */
-    private Image pickDirImage(Image[] set, int dir) {
-        if (set == null) return null;
-        if (dir < 0 || dir > 3) dir = 1;
-        if (set[dir] != null) return set[dir];
-        for (int d : new int[]{1, 0, 2, 3}) {
-            if (set[d] != null) return set[d];
-        }
-        return null;
-    }
-
-    private int clampDir(int dir) {
-        return (dir < 0 || dir > 3) ? 1 : dir;
-    }
-
     // ═══════════════════════════════════════════════════════════════════════
-    // TIMER
+    // INPUT — SKILLS
     // ═══════════════════════════════════════════════════════════════════════
 
-    private void startTimer() {
-        timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-            if (timeLeft <= 0) { pauseAll(); setGameStatus(Status.LOSE); gameOver(); return; }
-            timeLeft--;
-            int m = timeLeft / 60, s = timeLeft % 60;
-            timerLabel.setText(m + ":" + (s < 10 ? "0" : "") + s);
-            if (timeLeft <= 30) timerLabel.setStyle(timerLabel.getStyle() + "-fx-text-fill: #e53935;");
-            if (kills > config.getGoal()) {
-                setGameStatus(config.getLevel() == 5 ? Status.CLEAR : Status.WIN);
-                gameOver();
+    private void handleSkillKey() {
+        if (player.isSkillReady()) skillBtn.setStyle(pressedStyle);
+
+        if (player instanceof FireCharacter fire && fire.isSkillReady()) {
+            activateFireTeleport(fire);
+        } else if (player instanceof WaterCharacter water && water.isSkillReady()) {
+            activateWaterShield(water);
+        } else if (player instanceof ElectricCharacter electric && electric.isSkillReady()) {
+            activateElectricStun(electric);
+        }
+    }
+
+    private void activateFireTeleport(FireCharacter fire) {
+        for(Enemy enemy:enemies){enemy.setFreezed(true);}
+        stopCharacter = true;
+        timer.stop();
+        fire.useSkill();
+        setGridStyle("-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;");
+
+        new Timeline(new KeyFrame(Duration.seconds(3), e -> {
+            if (fire.isTeleportArmed()) {
+                fire.cancelTeleport();
+                for(Enemy enemy:enemies){enemy.setFreezed(false);}
+                stopCharacter = false;
+                timer.play();
+                resetGridStyle();
             }
-            updateSkillButtonUI();
-        }));
-        timer.setCycleCount(Timeline.INDEFINITE);
-        resumeAll();
+        })).play();
     }
 
-    private void pauseAll()  { if (timer != null) timer.stop();  if (enemyTimer != null) enemyTimer.stop();  if (spawnTimer != null) spawnTimer.stop(); }
-    private void resumeAll() { if (timer != null) timer.play();  if (enemyTimer != null) enemyTimer.play();  if (spawnTimer != null) spawnTimer.play(); }
+    private void activateWaterShield(WaterCharacter water) {
+        water.useSkill();
+        styleCell(playerRow, playerCol);
+        skillBtn.setDisable(true);
+        activateShieldBadge();
+    }
+
+    private void activateElectricStun(ElectricCharacter electric) {
+        for(Enemy enemy:enemies){enemy.setFreezed(true);}
+        setGridStyle("-fx-background-color: #cfd8dc; -fx-border-color: #b0bec5;");
+        new Timeline(new KeyFrame(
+                Duration.millis(ElectricCharacter.getStunDurationMs()),
+                e -> {
+                    for(Enemy enemy:enemies) {enemy.setFreezed(false);}
+                    resetGridStyle();
+                }
+        )).play();
+        electric.useSkill();
+    }
+
+    private void handleCellClick(int row, int col) {
+        if (!(player instanceof FireCharacter fire) || !fire.isTeleportArmed()) return;
+        Tile target = map[row][col];
+        if (seaweeds[row][col] != null && !seaweeds[row][col].isDestroyed())
+            target = seaweeds[row][col];
+
+        if (fire.teleportTo(col, row, target, false)) {
+            playerRow = row; playerCol = col;
+            spawner.setPlayerPos(playerRow, playerCol);
+            renderGrid();
+            resetGridStyle();
+        }
+        for(Enemy enemy:enemies){enemy.setFreezed(false);}
+        stopCharacter = false;
+        timer.play();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SHIELD BADGE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void activateShieldBadge() {
+        shieldBadge.setText("✓");
+        shieldBadge.setStyle(ShieldBadgeStyle.ACTIVE);
+        shieldBadge.setVisible(true);
+    }
+
+    private void deactivateShieldBadge() {
+        shieldBadge.setText("✗");
+        shieldBadge.setStyle(ShieldBadgeStyle.INACTIVE);
+        shieldBadge.setVisible(true);
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // UI SETUP
@@ -1012,7 +629,7 @@ public class GameController extends StackPane {
     }
 
     private HBox buildTopBar() {
-        killLabel = new Label("0 / " + config.getGoal());
+        killLabel = new Label(scoreManager.formatProgress());
         killLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; " +
                 "-fx-background-color: #fff8e1; -fx-border-color: #f9a825; " +
                 "-fx-border-radius: 20; -fx-background-radius: 20; -fx-padding: 6 18;");
@@ -1042,21 +659,17 @@ public class GameController extends StackPane {
         grid.setPadding(new Insets(10));
 
         cells = new Button[config.getRows()][config.getCols()];
-
         for (int r = 0; r < config.getRows(); r++) {
             for (int c = 0; c < config.getCols(); c++) {
                 final int row = r, col = c;
                 Button cell = new Button();
-                cell.setMinSize(cs, cs);
-                cell.setMaxSize(cs, cs);
-                cell.setPrefSize(cs, cs);
+                cell.setMinSize(cs, cs); cell.setMaxSize(cs, cs); cell.setPrefSize(cs, cs);
                 cell.setFocusTraversable(false);
                 cell.setOnAction(e -> handleCellClick(row, col));
                 cells[r][c] = cell;
                 grid.add(cell, c, r);
             }
         }
-
         for (int c = 0; c < config.getCols(); c++) {
             ColumnConstraints cc = new ColumnConstraints(cs); cc.setHgrow(Priority.NEVER);
             grid.getColumnConstraints().add(cc);
@@ -1066,25 +679,6 @@ public class GameController extends StackPane {
             grid.getRowConstraints().add(rc);
         }
         return grid;
-    }
-
-    /** Handles FireCharacter teleport clicks on the grid. */
-    private void handleCellClick(int row, int col) {
-        if (!(player instanceof FireCharacter fire) || !fire.isTeleportArmed()) return;
-
-        Tile targetTile = map[row][col];
-        if (seaweeds[row][col] != null && !seaweeds[row][col].isDestroyed())
-            targetTile = seaweeds[row][col];
-
-        if (fire.teleportTo(col, row, targetTile, false)) {
-            playerRow = row;
-            playerCol = col;
-            renderGrid();
-            resetGridStyle();
-        }
-        stopEnemy     = false;
-        stopCharacter = false;
-        timer.play();
     }
 
     private HBox buildRightPanel() {
@@ -1111,7 +705,8 @@ public class GameController extends StackPane {
         this.infoBtn = new Button("i");
         infoBtn.setPrefSize(36, 36);
         infoBtn.setFocusTraversable(false);
-        infoBtn.setStyle("-fx-background-radius: 18; -fx-border-radius: 18; -fx-border-color: #e53935; -fx-border-width: 2;");
+        infoBtn.setStyle("-fx-background-radius: 18; -fx-border-radius: 18; " +
+                "-fx-border-color: #e53935; -fx-border-width: 2;");
         infoBtn.setOnAction(e -> { pauseAll(); skillsInformation(); });
 
         iconCol.getChildren().addAll(spacer, infoBtn, new Label("[U]"));
@@ -1132,8 +727,7 @@ public class GameController extends StackPane {
         String skillText = switch (name) {
             case "Patrick"   -> "Teleport\n[K]";
             case "Squidward" -> "Generate\nshield [K]";
-            case "SpongeBob" -> "Freeze all\nenemies [K]";
-            default -> null;
+            default          -> "Freeze all\nenemies [K]";
         };
         Label skillLabel = new Label(skillText);
         skillLabel.setFont(Font.font(15));
@@ -1167,14 +761,15 @@ public class GameController extends StackPane {
         return heartsBox;
     }
 
-    // ── Popups ─────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════════
+    // POPUPS
+    // ═══════════════════════════════════════════════════════════════════════
 
     private void skillsInformation() {
         if (infoPopup != null && infoPopup.isShowing()) { infoPopup.close(); resumeAll(); return; }
         infoPopup = new Stage();
         infoPopup.initModality(Modality.APPLICATION_MODAL);
         infoPopup.setTitle("Skills info");
-
         Label text = new Label(
                 "• Bomb Capacity Up: Increase max\nbombs you can drop.\n\n" +
                         "• Blast Radius: Expand the explosion\nrange.\n\n" +
@@ -1182,7 +777,6 @@ public class GameController extends StackPane {
                         "• Bubble Shield: Protects you from one\ninstance of damage.\n\n" +
                         "• Quick Heal: Restore your HP\nfor 1 immediately.");
         text.setFont(Font.font(18));
-
         VBox layout = new VBox(20, text);
         layout.setAlignment(Pos.CENTER);
         Scene scene = new Scene(layout, 400, 380);
@@ -1239,29 +833,22 @@ public class GameController extends StackPane {
 
     private void styleCell(int r, int c) {
         Button cell = cells[r][c];
-        cell.setText("");
-        cell.setGraphic(null);
+        cell.setText(""); cell.setGraphic(null);
 
         // Player
         if (r == playerRow && c == playerCol) {
             Image[] set = switch (name) {
-                case "Patrick"  -> patrickImgs;
-                case "Squidward"-> squidWardImgs;
-                default         -> spongebobImgs;
+                case "Patrick"   -> patrickImgs;
+                case "Squidward" -> squidWardImgs;
+                default          -> spongebobImgs;
             };
-            Image playerImg = pickDirImage(set, playerDir);
-
+            Image img = pickDirImage(set, playerDir);
             String style = player.hasShield()
-                    ? baseStyle + "-fx-border-color: #00E5FF; -fx-border-width: 4px; -fx-border-radius: 100; -fx-background-radius: 100;"
+                    ? baseStyle + "-fx-border-color: #00E5FF; -fx-border-width: 4px; " +
+                    "-fx-border-radius: 100; -fx-background-radius: 100;"
                     : baseStyle;
-
-            if (playerImg != null) {
-                cell.setStyle(style);
-                cell.setGraphic(makePlayerCellGraphic(playerImg));
-            } else {
-                cell.setStyle(style + "-fx-background-color: #fff176; -fx-font-weight: bold;");
-                cell.setText("S");
-            }
+            if (img != null) { cell.setStyle(style); cell.setGraphic(makePlayerCellGraphic(img)); }
+            else             { cell.setStyle(style + "-fx-background-color: #fff176; -fx-font-weight: bold;"); cell.setText("S"); }
             return;
         }
 
@@ -1270,7 +857,8 @@ public class GameController extends StackPane {
         if (en != null) {
             Image img = enemyImage(en);
             String style = en.isShielded()
-                    ? "-fx-border-color: #00E5FF; -fx-border-width: 4px; -fx-border-radius: 100; -fx-background-radius: 100; -fx-background-color: #dcedc8;"
+                    ? "-fx-border-color: #00E5FF; -fx-border-width: 4px; -fx-border-radius: 100; " +
+                    "-fx-background-radius: 100; -fx-background-color: #dcedc8;"
                     : baseStyle;
             if (img != null) { cell.setStyle(style); cell.setGraphic(makeCellImage(img)); }
             else             { cell.setStyle(style + "-fx-background-color: #ff7043; -fx-font-weight: bold;"); cell.setText("E"); }
@@ -1291,16 +879,16 @@ public class GameController extends StackPane {
             return;
         }
 
-        // Seaweed (animated — frame toggled by seaweedAnimTimer)
+        // Seaweed (animated)
         if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) {
-            Image swImg = (seaweedImgs != null) ? seaweedImgs[seaweedFrame] : null;
-            if (swImg == null && seaweedImgs != null) swImg = seaweedImgs[1 - seaweedFrame];
-            if (swImg != null) { cell.setStyle(baseStyle); cell.setGraphic(makeCellImage(swImg)); }
+            Image sw = (seaweedImgs != null) ? seaweedImgs[seaweedFrame] : null;
+            if (sw == null && seaweedImgs != null) sw = seaweedImgs[1 - seaweedFrame];
+            if (sw != null) { cell.setStyle(baseStyle); cell.setGraphic(makeCellImage(sw)); }
             else { cell.setStyle("-fx-background-color: #66bb6a; -fx-border-color: #2e7d32; -fx-font-weight: bold;"); cell.setText("W"); }
             return;
         }
 
-        // Buff
+        // Buff pickup
         if (buffMap[r][c] != null) {
             Image bImg = buffImage(buffMap[r][c]);
             if (bImg != null) { cell.setStyle(baseStyle); cell.setGraphic(makeCellImage(bImg)); return; }
@@ -1316,15 +904,6 @@ public class GameController extends StackPane {
         cell.setStyle(baseStyle);
     }
 
-    private Image buffImage(Buff b) {
-        if (b instanceof MaxBombBuff)    return maxBombImg;
-        if (b instanceof BombRangeBuff)  return bombRangeImg;
-        if (b instanceof BombDamageBuff) return bombDamageImg;
-        if (b instanceof ShieldBuff)     return bubbleShieldImg;
-        if (b instanceof HealBuff)       return healImg;
-        return null;
-    }
-
     private void applyExplosionEffect(boolean[][] zone) {
         for (int r = 0; r < config.getRows(); r++) {
             for (int c = 0; c < config.getCols(); c++) {
@@ -1337,9 +916,131 @@ public class GameController extends StackPane {
         }
     }
 
+    private void setGridStyle(String style) {
+        setBaseStyle(style);
+        for (int r = 0; r < config.getRows(); r++)
+            for (int c = 0; c < config.getCols(); c++)
+                cells[r][c].setStyle(style);
+    }
+
+    private void resetGridStyle() {
+        setBaseStyle("-fx-background-color: #dcedc8; -fx-border-color: #aed581;");
+        for (int r = 0; r < config.getRows(); r++)
+            for (int c = 0; c < config.getCols(); c++)
+                cells[r][c].setStyle(baseStyle);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // RENDERING HELPERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private Enemy enemyAt(int r, int c) {
+        for (Enemy e : enemies) if (e.occupiesTile(r, c)) return e;
+        return null;
+    }
+
+    private Image enemyImage(Enemy e) {
+        int dir = (e.getCurrentDir() < 0 || e.getCurrentDir() > 3) ? 1 : e.getCurrentDir();
+        Image[] set;
+        Level lvl = e.getLevel();
+        if (lvl == null) { set = npcImgs; }
+        else set = switch (lvl) {
+            case EASY -> npcImgs;
+            case HARD -> kingNeptuneImgs;
+            case MEDIUM -> {
+                if (e.getElement() == null) yield mrKrabImgs;
+                yield switch (e.getElement()) {
+                    case WATER    -> garyImgs;
+                    case ELECTRIC -> sandyImgs;
+                    default       -> mrKrabImgs;
+                };
+            }
+        };
+        return pickDirImage(set, dir);
+    }
+
+    private Image pickDirImage(Image[] set, int dir) {
+        if (set == null) return null;
+        if (dir < 0 || dir > 3) dir = 1;
+        if (set[dir] != null) return set[dir];
+        for (int d : new int[]{1, 0, 2, 3}) if (set[d] != null) return set[d];
+        return null;
+    }
+
+    private Image buffImage(Buff b) {
+        if (b instanceof MaxBombBuff)    return maxBombImg;
+        if (b instanceof BombRangeBuff)  return bombRangeImg;
+        if (b instanceof BombDamageBuff) return bombDamageImg;
+        if (b instanceof ShieldBuff)     return bubbleShieldImg;
+        if (b instanceof HealBuff)       return healImg;
+        return null;
+    }
+
+    private ImageView makeCellImage(Image img) {
+        ImageView iv = new ImageView(img);
+        double size = Math.max(cellSize - 4, 8);
+        iv.setFitWidth(size); iv.setFitHeight(size); iv.setPreserveRatio(true);
+        return iv;
+    }
+
+    private StackPane makePlayerCellGraphic(Image playerImg) {
+        StackPane stack = new StackPane();
+        if (woodEdgeImg != null) {
+            ImageView edge = new ImageView(woodEdgeImg);
+            double fs = Math.max(cellSize - 2, 8);
+            edge.setFitWidth(fs); edge.setFitHeight(fs);
+            edge.setPreserveRatio(false); edge.setSmooth(false);
+            stack.getChildren().add(edge);
+        }
+        if (playerImg != null) {
+            ImageView pv = new ImageView(playerImg);
+            double ps = Math.max(cellSize - 14, 8);
+            pv.setFitWidth(ps); pv.setFitHeight(ps);
+            pv.setPreserveRatio(true); pv.setSmooth(false);
+            stack.getChildren().add(pv);
+        }
+        return stack;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // UI HELPERS
     // ═══════════════════════════════════════════════════════════════════════
+
+    private void updateKillLabel() {
+        if (killLabel != null) killLabel.setText(scoreManager.formatProgress());
+    }
+
+    private void updateBombLabel() { bombLabel.setText(bombsLeft + " / " + maxBombs); }
+
+    private void updateHearts() {
+        heartsBox.getChildren().clear();
+        for (int i = 0; i < 5; i++) {
+            Label h = new Label(i < hearts ? "♥" : "♡");
+            h.setStyle("-fx-font-size: 26px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
+            heartsBox.getChildren().add(h);
+        }
+        if (hearts <= 0) { setGameStatus(Status.LOSE); gameOver(); }
+    }
+
+    private void updateSkillButtonUI() {
+        if (!(player instanceof Skillable s)) return;
+        if (!s.isSkillReady()) {
+            long rem = Math.max(0, (s.getLastSkillUseTime() + (long) s.getCooldown() * 1000L
+                    - System.currentTimeMillis()) / 1000);
+            skillBtn.setText(rem + "s");
+            skillBtn.setDisable(true);
+            skillBtn.setOpacity(0.7);
+        } else {
+            skillBtn.setText("Skill");
+            skillBtn.setDisable(false);
+            skillBtn.setOpacity(1.0);
+        }
+    }
+
+    private void updateBadge(Label badge, int count) {
+        badge.setText(String.valueOf(count));
+        badge.setVisible(count > 0);
+    }
 
     public ImageView createSkillImage(String skillName) {
         Image img = new Image(getClass().getResourceAsStream("/images/" + skillName));
@@ -1369,35 +1070,62 @@ public class GameController extends StackPane {
         return stack;
     }
 
-    private void updateBadge(Label badge, int count) {
-        badge.setText(String.valueOf(count));
-        badge.setVisible(count > 0);
+    // ═══════════════════════════════════════════════════════════════════════
+    // IMAGE / AUDIO LOADING
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void loadImages() {
+        spongebobImgs   = loadDirectional("spongebob",   "Sponge",    "Front");
+        patrickImgs     = loadDirectional("patrick",     "Patrick",   "Front");
+        squidWardImgs   = loadDirectional("squidword",   "SquidWord", "Font");
+        npcImgs         = loadDirectional("npc",         "Npc",       "Font");
+        mrKrabImgs      = loadDirectional("mrkrab",      "MrKrab",    "Font");
+        garyImgs        = loadDirectional("gary",        "Gary",      "Font");
+        sandyImgs       = loadDirectional("sandy",       "Sandy",     "Font");
+        kingNeptuneImgs = loadDirectional("kingneptune", "KingNep",   "Front");
+        spawnImg     = tryLoadImage("/images/gamePlay/spawn/spawn.png");
+        rockImg      = tryLoadImage("/images/gamePlay/rock/Rock.png");
+        woodEdgeImg  = tryLoadImage("/images/gamePlay/WoodEdge/WoodEdge.png");
+        seaweedImgs  = new Image[]{
+                tryLoadImage("/images/gamePlay/seaweed/seaweed_0.png"),
+                tryLoadImage("/images/gamePlay/seaweed/seaweed_1.png")
+        };
+        bombImg        = tryLoadImage("/images/gamePlay/bomb.png");
+        maxBombImg     = tryLoadImage("/images/buffIcon/increaseMaximumBomb.png");
+        bombRangeImg   = tryLoadImage("/images/buffIcon/increaseBombRange.png");
+        bombDamageImg  = tryLoadImage("/images/buffIcon/increaseBombDamage.png");
+        bubbleShieldImg= tryLoadImage("/images/buffIcon/bubbleShield.png");
+        healImg        = tryLoadImage("/images/buffIcon/heal.png");
     }
 
-    private void updateBombLabel() { bombLabel.setText(bombsLeft + " / " + maxBombs); }
+    private Image[] loadDirectional(String folder, String prefix, String downSuffix) {
+        return new Image[]{
+                tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Back.png"),
+                tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + downSuffix + ".png"),
+                tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Left.png"),
+                tryLoadImage("/images/gamePlay/" + folder + "/" + prefix + "Right.png")
+        };
+    }
 
-    private void updateHearts() {
-        heartsBox.getChildren().clear();
-        for (int i = 0; i < 5; i++) {
-            Label h = new Label(i < hearts ? "♥" : "♡");
-            h.setStyle("-fx-font-size: 26px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
-            heartsBox.getChildren().add(h);
+    private void loadAudio() { explodeSfx = tryLoadAudio("/sounds/explosion.mp3"); }
+
+    private Image tryLoadImage(String path) {
+        try {
+            var url = getClass().getResource(path);
+            if (url == null) { System.out.println("[Image] NOT FOUND: " + path); return null; }
+            return new Image(url.toExternalForm());
+        } catch (Exception e) {
+            System.out.println("[Image] ERROR: " + path + " → " + e.getMessage()); return null;
         }
-        if (hearts <= 0) { setGameStatus(Status.LOSE); gameOver(); }
     }
 
-    private void updateSkillButtonUI() {
-        if (!(player instanceof Skillable s)) return;
-        if (!s.isSkillReady()) {
-            long remaining = Math.max(0, (s.getLastSkillUseTime() + (long) s.getCooldown() * 1000L
-                    - System.currentTimeMillis()) / 1000);
-            skillBtn.setText(remaining + "s");
-            skillBtn.setDisable(true);
-            skillBtn.setOpacity(0.7);
-        } else {
-            skillBtn.setText("Skill");
-            skillBtn.setDisable(false);
-            skillBtn.setOpacity(1.0);
+    private AudioClip tryLoadAudio(String path) {
+        try {
+            var url = getClass().getResource(path);
+            if (url == null) { System.out.println("[Audio] NOT FOUND: " + path); return null; }
+            return new AudioClip(url.toExternalForm());
+        } catch (Exception e) {
+            System.out.println("[Audio] ERROR: " + path + " → " + e.getMessage()); return null;
         }
     }
 

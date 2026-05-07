@@ -4,10 +4,10 @@ import game.character.Character;
 
 public class BombDamageBuff extends Buff {
 
-    private static final int DAMAGE_BONUS = 1;   // เพิ่ม damage +1
+    private static final int DAMAGE_BONUS = 1;
 
     public BombDamageBuff(int r, int c) {
-        super(r,c);
+        super(r, c);
     }
 
     @Override

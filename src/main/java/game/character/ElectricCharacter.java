@@ -4,60 +4,34 @@ import game.Element;
 
 public class ElectricCharacter extends Character implements Skillable {
 
-    // ── Skill settings ────────────────────────
-    // หยุดศัตรูเป็นเวลา 2 วินาที (stun)
-    private static final long STUN_DURATION_MS = 2000L;   // 2 วินาที
-    private static final int  COOLDOWN_SECONDS = 30;      // cooldown 10 วินาที
-
-    private long lastSkillUseTime = 0L;
-    private boolean stunActive    = false;
-    private long stunEndTime      = 0L;
+    private static final long STUN_DURATION_MS = 2000L;
+    private static final int  COOLDOWN_SECONDS = 30;
 
     // ── Constructor ───────────────────────────
-    // รับ stat ทุกตัวเป็น int (ยังไม่กำหนดตัวเลขจริง ๆ ตอนนี้)
     public ElectricCharacter(int health, int damage, int bombRange, int maxBombs) {
         super(health, damage, bombRange, maxBombs, Element.ELECTRIC);
     }
 
-    // ── Skillable methods ─────────────────────
+    // ── Skillable ─────────────────────────────
     @Override
     public void useSkill() {
-        if (!isSkillReady()) return;             // ยังติด cooldown → ใช้ไม่ได้
-        long now = System.currentTimeMillis();
-        stunActive       = true;
-        stunEndTime      = now + STUN_DURATION_MS;
-        lastSkillUseTime = now;
+        if (!isSkillReady()) return;
+        recordSkillUse(); // handled in Character base class
     }
 
     @Override
     public boolean isSkillReady() {
-        long now = System.currentTimeMillis();
-        return (now - lastSkillUseTime) >= (COOLDOWN_SECONDS * 1000L);
+        return (System.currentTimeMillis() - getLastSkillUseTime())
+                >= (long) COOLDOWN_SECONDS * 1000L;
     }
 
     @Override
-    public int getCooldown() {
-        return COOLDOWN_SECONDS;
-    }
+    public int getCooldown() { return COOLDOWN_SECONDS; }
 
-    // ── ตรวจสอบว่าศัตรูยังโดน stun อยู่ไหม ─────
-    public boolean isStunActive() {
-        if (stunActive && System.currentTimeMillis() >= stunEndTime) {
-            stunActive = false;                  // หมดเวลา stun แล้ว
-        }
-        return stunActive;
-    }
+    public static long getStunDurationMs() { return STUN_DURATION_MS; }
 
-    @Override
-    public long getLastSkillUseTime() {
-        return lastSkillUseTime;
-    }
-    public static long getStunDurationMs() {return STUN_DURATION_MS;}
-
-
-    // ── Description ───────────────────────────
     @Override
     public String getDescription() {
-        return "Electric Character: Stun enemies for 2 seconds.";
+        return "Electric Character: Stun all enemies for 2 seconds.";
     }
 }

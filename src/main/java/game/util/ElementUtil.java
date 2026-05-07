@@ -24,9 +24,9 @@ public class ElementUtil {
     public int calculateEnemyDamage(Enemy attacker, Character defender) {
         Element atk = attacker.getElement();
         Element def = defender.getElement();
-        if (isStrongAgainst(atk, def)) return 3;
-        if (isWeakAgainst(atk, def)) return 1;
-        return 2;
+        if (isStrongAgainst(atk, def)) return attacker.getDamage() + 2;
+        if (isWeakAgainst(atk, def)) return attacker.getDamage();
+        return attacker.getDamage() + 1;
     }
 
     private boolean isStrongAgainst(Element atk, Element def) {
