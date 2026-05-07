@@ -171,7 +171,8 @@ public class GameController extends StackPane {
         this.element = switch (name) {
             case "Patrick"   -> Element.FIRE;
             case "Squidward" -> Element.WATER;
-            default          -> Element.ELECTRIC;
+            case "SpongeBob" -> Element.ELECTRIC;
+            default -> null;
         };
 
         loadImages();
