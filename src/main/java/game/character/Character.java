@@ -16,6 +16,7 @@ public abstract class Character implements Skillable {
     protected int bombRange;
     protected int maxBombs;
     protected boolean haveShield;
+    protected boolean immortal;
     protected Element element;
 
     protected int posX;
@@ -23,6 +24,7 @@ public abstract class Character implements Skillable {
 
     private int  cooldownSeconds;
     private long lastSkillUseTime = 0L;
+    private static final long immortalDuration = 2000L;
 
     protected Character(int health, int damage, int bombRange,
                         int maxBombs, Element element) {
@@ -32,6 +34,7 @@ public abstract class Character implements Skillable {
         this.bombRange  = bombRange;
         this.maxBombs   = maxBombs;
         this.haveShield = false;
+        this.immortal = false;
         this.element    = element;
     }
 
@@ -105,7 +108,8 @@ public abstract class Character implements Skillable {
     public int     getPosY()      { return posY; }
     public Element getElement()   { return element; }
     public boolean isAlive()      { return health > 0; }
-
+    public boolean isImmortal()    { return immortal; }
+    public static long getImmortalDuration() {return immortalDuration;}
     // ── Setters ───────────────────────────────────────────────────────────
 
     public void setPos(int x, int y)        { posX = x; posY = y; }
@@ -117,9 +121,10 @@ public abstract class Character implements Skillable {
     public void setMaxBombs(int m)          { maxBombs  = m; }
     public void setCooldownSeconds(int s)   { cooldownSeconds = s; }
     public void setHaveShield(boolean s)    { haveShield = s; }
-    public void setPosX(int x)             { posX = x; }
-    public void setPosY(int y)             { posY = y; }
-    public void setElement(Element e)      { element = e; }
+    public void setPosX(int x)              { posX = x; }
+    public void setPosY(int y)              { posY = y; }
+    public void setElement(Element e)       { element = e; }
+    public boolean setImmortal(boolean s)   { immortal = s; return true; }
 
     // ── Abstract ──────────────────────────────────────────────────────────
 

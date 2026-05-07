@@ -292,7 +292,7 @@ public class GameController extends StackPane {
     }
 
     private void startEnemyTimer() {
-        enemyTimer = new Timeline(new KeyFrame(Duration.millis(600), e -> {
+        enemyTimer = new Timeline(new KeyFrame(Duration.millis(1000), e -> {
             spawner.setPlayerPos(playerRow, playerCol);
             for (Enemy en : enemies)
                 en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
@@ -354,7 +354,7 @@ public class GameController extends StackPane {
         if (nc < 0 || nc >= config.getCols()) { renderGrid(); return; }
         if (!map[nr][nc].isPassable())         { renderGrid(); return; }
         if (seaweeds[nr][nc] != null && !seaweeds[nr][nc].isDestroyed()) { renderGrid(); return; }
-        if (hasBomb[nr][nc])                   { renderGrid(); return; }
+        //if (hasBomb[nr][nc])                   { renderGrid(); return; }
 
         playerRow = nr;
         playerCol = nc;
@@ -449,12 +449,19 @@ public class GameController extends StackPane {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void applyBlastDamageToPlayer() {
-        if (player.hasShield()) {
-            player.setShield(false);
-            deactivateShieldBadge();
-        } else {
-            hearts = Math.max(0, hearts - player.getDamage());
-            updateHearts();
+        if (! player.isImmortal()){
+            if (player.hasShield()) {
+                player.setShield(false);
+                deactivateShieldBadge();
+            } else {
+                hearts = Math.max(0, hearts - 1);
+                updateHearts();
+            }
+            player.setImmortal(true);
+            new Timeline(new KeyFrame(
+                    Duration.millis(player.getImmortalDuration()),
+                    e -> {player.setImmortal(false);}
+            )).play();
         }
     }
 
@@ -497,15 +504,23 @@ public class GameController extends StackPane {
         }
     }
 
-    private void damageFromEnemy(Enemy e) {
-        if (player.hasShield()) {
-            player.setShield(false);
-            deactivateShieldBadge();
-            return;
+    private void damageFromEnemy(Enemy en) {
+        if(! player.isImmortal()){
+            if (player.hasShield()) {
+                player.setShield(false);
+                deactivateShieldBadge();
+                return;
+            }
+            int dmg = elementUtil.calculateEnemyDamage(en, player);
+            hearts = Math.max(0, hearts - dmg);
+            updateHearts();
+
+            player.setImmortal(true);
+            new Timeline(new KeyFrame(
+                    Duration.millis(player.getImmortalDuration()),
+                    e -> {player.setImmortal(false);}
+            )).play();
         }
-        int dmg = elementUtil.calculateEnemyDamage(e, player);
-        hearts = Math.max(0, hearts - dmg);
-        updateHearts();
     }
 
     private void triggerPhase2() {

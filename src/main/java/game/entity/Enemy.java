@@ -155,11 +155,10 @@ public abstract class Enemy {
      */
     public boolean canWalk(int r, int c, Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb, List<Enemy> enemies, int rows, int cols) {
         if(isFreezed) return false;
-
         if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
         if (map[r][c] instanceof Rock) return false;
         if (seaweeds[r][c] != null && !seaweeds[r][c].isDestroyed()) return false;
-        if (hasBomb[r][c]) return false;
+        //if (hasBomb[r][c]) return false;
         for (Enemy o : enemies) {
             if (o != this && o.occupiesTile(r, c)) return false;
         }
@@ -169,9 +168,7 @@ public abstract class Enemy {
     /**
      * Whether a 2×2 Hard enemy can anchor at top-left (nr, nc).
      */
-    public boolean canWalkHard(int nr, int nc,
-                               Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb,
-                               List<Enemy> enemies, int rows, int cols) {
+    public boolean canWalkHard(int nr, int nc, Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb, List<Enemy> enemies, int rows, int cols) {
         if (nr < 0 || nr + 1 >= rows || nc < 0 || nc + 1 >= cols) return false;
         for (int dr = 0; dr < 2; dr++)
             for (int dc = 0; dc < 2; dc++)
