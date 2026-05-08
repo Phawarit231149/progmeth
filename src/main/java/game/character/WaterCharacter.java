@@ -4,7 +4,7 @@ import game.Element;
 
 public class WaterCharacter extends Character implements Skillable {
 
-    private static final int COOLDOWN_SECONDS = 90;
+    private static final int COOLDOWN_SECONDS = 60;
 
     // ── Constructor ───────────────────────────
     public WaterCharacter(int health, int damage, int bombRange, int maxBombs) {

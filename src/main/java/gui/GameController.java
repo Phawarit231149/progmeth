@@ -201,7 +201,7 @@ public class GameController extends StackPane {
         startEnemyTimer();
         startSpawnTimer();
         startSeaweedAnimation();
-        if (config.getLevel() == 5) startPhase2AttackTimer(); //
+        //if (config.getLevel() == 5) startPhase2AttackTimer();
 
         this.setFocusTraversable(true);
         this.setOnKeyPressed(event -> {
@@ -529,22 +529,8 @@ public class GameController extends StackPane {
                 }
                 renderGrid();
                 checkPlayerEnemyCollision();
-                //adjustEnemyTimerSpeed();
-            }));
-
-        } else {
-            enemyTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> {
-                spawner.setPlayerPos(playerRow, playerCol);
-                for (Enemy en : enemies) {
-                    en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
-                            config.getRows(), config.getCols());
-                }
-                renderGrid();
-                checkPlayerEnemyCollision();
-                //adjustEnemyTimerSpeed();
             }));
         }
-
         enemyTimer.setCycleCount(Timeline.INDEFINITE);
         enemyTimer.play();
     }
@@ -556,25 +542,6 @@ public class GameController extends StackPane {
         }));
         spawnTimer.setCycleCount(Timeline.INDEFINITE);
         spawnTimer.play();
-    }
-
-    private void adjustEnemyTimerSpeed() {
-        double targetMs = (enemies.size() == 1) ? 600 : 1000;
-        double currentMs = enemyTimer.getKeyFrames().get(0).getTime().toMillis();
-        if (currentMs == targetMs) return;
-
-        enemyTimer.stop();
-        enemyTimer.getKeyFrames().setAll(new KeyFrame(Duration.millis(targetMs), e -> {
-            spawner.setPlayerPos(playerRow, playerCol);
-            for (Enemy en : enemies) {
-                en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
-                        config.getRows(), config.getCols());
-            }
-            renderGrid();
-            checkPlayerEnemyCollision();
-            adjustEnemyTimerSpeed();
-        }));
-        enemyTimer.play();
     }
 
     private void startSeaweedAnimation() {
@@ -716,21 +683,24 @@ public class GameController extends StackPane {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void applyBlastDamageToPlayer() {
-        if (!player.isImmortal()) {
-            if (player.hasShield()) {
-                player.setShield(false);
-                deactivateShieldBadge();
-            } else {
-                hearts = Math.max(0, hearts - 1);
-                updateHearts();
-            }
-            player.setImmortal(true);
-            startImmortalFlicker();
-            new Timeline(new KeyFrame(
-                    Duration.millis(player.getImmortalDuration()),
-                    e -> { player.setImmortal(false); stopImmortalFlicker(); }
-            )).play();
+        if (player.isImmortal()) return; // ✅ double-guard
+
+        // ✅ Set immortal FIRST before any timeline
+        player.setImmortal(true);
+        startImmortalFlicker();
+
+        if (player.hasShield()) {
+            player.setShield(false);
+            deactivateShieldBadge();
+        } else {
+            hearts = Math.max(0, hearts - 1);
+            updateHearts();
         }
+
+        new Timeline(new KeyFrame(
+                Duration.millis(player.getImmortalDuration()),
+                e -> { player.setImmortal(false); stopImmortalFlicker(); }
+        )).play();
     }
 
     private void applyBlastDamageToEnemies(boolean[][] zone) {
@@ -754,19 +724,18 @@ public class GameController extends StackPane {
                     return;
                 }
                 // Stage 5 phase-2 trigger
-                if(config.getLevel() == 5) {triggerPhase2();}
-                /*
+                //if(config.getLevel() == 5) {triggerPhase2();}
                 if (config.getLevel() == 5 && !spawner.isPhase2Started()
                         && scoreManager.getScore() >= 25) {
                     triggerPhase2();
                 }
-                 */
             }
         }
         updateKillLabel();
     }
 
     private void checkPlayerEnemyCollision() {
+        if (player.isImmortal()) return; // ✅ early exit
         for (Enemy e : enemies) {
             if (e.occupiesTile(playerRow, playerCol)) {
                 damageFromEnemy(e);
@@ -776,23 +745,25 @@ public class GameController extends StackPane {
     }
 
     private void damageFromEnemy(Enemy en) {
-        if (!player.isImmortal()) {
-            if (player.hasShield()) {
-                player.setShield(false);
-                deactivateShieldBadge();
-                return;
-            }
+        if (player.isImmortal()) return; // ✅ double-guard here too
+
+        // ✅ Set immortal FIRST, synchronously, before any timeline
+        player.setImmortal(true);
+        startImmortalFlicker();
+
+        if (player.hasShield()) {
+            player.setShield(false);
+            deactivateShieldBadge();
+        } else {
             int dmg = elementUtil.calculateEnemyDamage(en, player);
             hearts = Math.max(0, hearts - dmg);
             updateHearts();
-
-            player.setImmortal(true);
-            startImmortalFlicker();
-            new Timeline(new KeyFrame(
-                    Duration.millis(player.getImmortalDuration()),
-                    e -> { player.setImmortal(false); stopImmortalFlicker(); }
-            )).play();
         }
+
+        new Timeline(new KeyFrame(
+                Duration.millis(player.getImmortalDuration()),
+                e -> { player.setImmortal(false); stopImmortalFlicker(); }
+        )).play();
     }
 
     private void triggerPhase2() {
@@ -1457,8 +1428,8 @@ public class GameController extends StackPane {
                 cell.setStyle(savedStyle);
                 cell.setText("");
                 cell.setFont(javafx.scene.text.Font.font(12));
-                renderGrid(); // restore proper graphic (seaweed, buff, etc.)
-                if (r == playerRow && c == playerCol) {
+                renderGrid();
+                if (r == playerRow && c == playerCol && !player.isImmortal()) { // ✅ add immortal check
                     applyBlastDamageToPlayer();
                 }
             }));

@@ -43,7 +43,7 @@ public class EnemyTest {
     void hardEnemy_defaultStats() {
         HardEnemy e = new HardEnemy(2, 0, 0, Element.WATER, false);
         assertEquals(Level.HARD, e.getLevel());
-        assertEquals(10, e.getHealth());
+        assertEquals(50, e.getHealth());
         assertEquals(2, e.getDamage());
     }
 

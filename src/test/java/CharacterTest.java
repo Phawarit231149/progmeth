@@ -248,7 +248,7 @@ public class CharacterTest {
         void cooldownValues_correct() {
             assertEquals(30, new FireCharacter(5, 1, 1, 5).getCooldown());
             assertEquals(30, new ElectricCharacter(5, 1, 1, 5).getCooldown());
-            assertEquals(90, new WaterCharacter(5, 1, 1, 5).getCooldown());
+            assertEquals(60, new WaterCharacter(5, 1, 1, 5).getCooldown());
         }
 
         @Test
