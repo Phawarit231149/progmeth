@@ -158,29 +158,25 @@ public class EnemyTest {
     @Test
     void canWalk_falseNegativeRow() {
         EasyEnemy e = new EasyEnemy(1, 2, 2, false);
-        assertFalse(e.canWalk(-1, 2, emptyMap(5, 5), emptySeaweeds(5, 5),
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertFalse(e.canWalk(-1, 2, emptyMap(5, 5), emptySeaweeds(5, 5), new ArrayList<>(), 5, 5));
     }
 
     @Test
     void canWalk_falseNegativeCol() {
         EasyEnemy e = new EasyEnemy(1, 2, 2, false);
-        assertFalse(e.canWalk(2, -1, emptyMap(5, 5), emptySeaweeds(5, 5),
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertFalse(e.canWalk(2, -1, emptyMap(5, 5), emptySeaweeds(5, 5), new ArrayList<>(), 5, 5));
     }
 
     @Test
     void canWalk_falseRowOverflow() {
         EasyEnemy e = new EasyEnemy(1, 2, 2, false);
-        assertFalse(e.canWalk(5, 2, emptyMap(5, 5), emptySeaweeds(5, 5),
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertFalse(e.canWalk(5, 2, emptyMap(5, 5), emptySeaweeds(5, 5), new ArrayList<>(), 5, 5));
     }
 
     @Test
     void canWalk_falseColOverflow() {
         EasyEnemy e = new EasyEnemy(1, 2, 2, false);
-        assertFalse(e.canWalk(2, 5, emptyMap(5, 5), emptySeaweeds(5, 5),
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertFalse(e.canWalk(2, 5, emptyMap(5, 5), emptySeaweeds(5, 5), new ArrayList<>(), 5, 5));
     }
 
     // ── Obstacles ─────────────────────────────────────────────────
@@ -190,8 +186,7 @@ public class EnemyTest {
         Tile[][] map = emptyMap(5, 5);
         map[2][3] = new Rock(2, 3);
         EasyEnemy e = new EasyEnemy(1, 0, 0, false);
-        assertFalse(e.canWalk(2, 3, map, emptySeaweeds(5, 5),
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertFalse(e.canWalk(2, 3, map, emptySeaweeds(5, 5), new ArrayList<>(), 5, 5));
     }
 
     @Test
@@ -199,8 +194,7 @@ public class EnemyTest {
         Seaweed[][] seaweeds = emptySeaweeds(5, 5);
         seaweeds[2][2] = new Seaweed(2, 2);
         EasyEnemy e = new EasyEnemy(1, 0, 0, false);
-        assertFalse(e.canWalk(2, 2, emptyMap(5, 5), seaweeds,
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertFalse(e.canWalk(2, 2, emptyMap(5, 5), seaweeds, new ArrayList<>(), 5, 5));
     }
 
     @Test
@@ -209,8 +203,7 @@ public class EnemyTest {
         seaweeds[2][2] = new Seaweed(2, 2);
         seaweeds[2][2].destroy();
         EasyEnemy e = new EasyEnemy(1, 0, 0, false);
-        assertTrue(e.canWalk(2, 2, emptyMap(5, 5), seaweeds,
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertTrue(e.canWalk(2, 2, emptyMap(5, 5), seaweeds, new ArrayList<>(), 5, 5));
     }
 
     @Test
@@ -218,8 +211,7 @@ public class EnemyTest {
         boolean[][] hasBomb = new boolean[5][5];
         hasBomb[3][3] = true;
         EasyEnemy e = new EasyEnemy(1, 0, 0, false);
-        assertTrue(e.canWalk(3, 3, emptyMap(5, 5), emptySeaweeds(5, 5),
-                hasBomb, new ArrayList<>(), 5, 5));
+        assertTrue(e.canWalk(3, 3, emptyMap(5, 5), emptySeaweeds(5, 5), new ArrayList<>(), 5, 5));
     }
 
     // ── Enemy collision ───────────────────────────────────────────
@@ -229,16 +221,14 @@ public class EnemyTest {
         EasyEnemy mover = new EasyEnemy(1, 0, 0, false);
         EasyEnemy blocker = new EasyEnemy(1, 3, 3, false); // posX=3, posY=3 → row=3,col=3
         List<Enemy> enemies = List.of(mover, blocker);
-        assertFalse(mover.canWalk(3, 3, emptyMap(6, 6), emptySeaweeds(6, 6),
-                new boolean[6][6], enemies, 6, 6));
+        assertFalse(mover.canWalk(3, 3, emptyMap(6, 6), emptySeaweeds(6, 6), enemies, 6, 6));
     }
 
     @Test
     void canWalk_trueOnOwnTile() {
         EasyEnemy e = new EasyEnemy(1, 2, 2, false); // posX=2, posY=2
         List<Enemy> enemies = List.of(e);
-        assertTrue(e.canWalk(2, 2, emptyMap(5, 5), emptySeaweeds(5, 5),
-                new boolean[5][5], enemies, 5, 5));
+        assertTrue(e.canWalk(2, 2, emptyMap(5, 5), emptySeaweeds(5, 5), enemies, 5, 5));
     }
 
     @Test
@@ -246,8 +236,7 @@ public class EnemyTest {
         EasyEnemy mover = new EasyEnemy(1, 0, 0, false);
         MediumEnemy blocker = new MediumEnemy(1, 4, 4, Element.FIRE, false);
         List<Enemy> enemies = List.of(mover, blocker);
-        assertFalse(mover.canWalk(4, 4, emptyMap(7, 7), emptySeaweeds(7, 7),
-                new boolean[7][7], enemies, 7, 7));
+        assertFalse(mover.canWalk(4, 4, emptyMap(7, 7), emptySeaweeds(7, 7), enemies, 7, 7));
     }
 
     // ── Clear path ────────────────────────────────────────────────
@@ -255,7 +244,6 @@ public class EnemyTest {
     @Test
     void canWalk_trueOnClearTile() {
         EasyEnemy e = new EasyEnemy(1, 0, 0, false);
-        assertTrue(e.canWalk(2, 2, emptyMap(5, 5), emptySeaweeds(5, 5),
-                new boolean[5][5], new ArrayList<>(), 5, 5));
+        assertTrue(e.canWalk(2, 2, emptyMap(5, 5), emptySeaweeds(5, 5), new ArrayList<>(), 5, 5));
     }
 }

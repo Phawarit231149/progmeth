@@ -17,14 +17,14 @@ public class RuleController extends BorderPane {
 
         // ⭐️ 8 rules — สั้นกระชับ
         String[] rules = {
-                "        1 Pick a character  Patrick Squidward or spongeBob",
-                "        2 Move with W A S D ",
-                "        3 Press P to plant bombs  O to detonate",
-                "        4 Press K to use your unique skill",
-                "        5 Element triangle  FIRE   WATER   ELECTRIC   FIRE",
-                "        6 Bombs destroy rocks and seaweed (buffs may drop)",
-                "        7 Pick up buffs  heal  shield  range  damage  max bombs",
-                "        8 Reach the kill goal before time runs out"
+                "        1  Pick  a  character  Patrick  Squidward  or  spongeBob",
+                "        2  Move  with  W  A  S  D ",
+                "        3  Press  P  to  plant  bombs  O  to  detonate",
+                "        4  Press  K  to  use  your  unique  skill",
+                "        5  Element triangle  FIRE   WATER   ELECTRIC   FIRE",
+                "        6  Bombs  destroy  rocks  and  seaweed  (buffs may drop)",
+                "        7  Pick  up  buffs  heal  shield  range  damage  max  bombs",
+                "        8  Reach  the  kill  goal  before  time  runs  out"
         };
 
         VBox rulesBox = new VBox(10);

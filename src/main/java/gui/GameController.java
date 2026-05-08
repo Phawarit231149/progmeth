@@ -88,6 +88,7 @@ public class GameController extends StackPane {
     private Timeline enemyTimer;
     private Timeline spawnTimer;
     private Timeline seaweedAnimTimer;
+    private Timeline skillCooldownTimer;
     private int seaweedFrame = 0;
 
     // ── UI ────────────────────────────────────────────────────────────────
@@ -172,7 +173,8 @@ public class GameController extends StackPane {
         this.element = switch (name) {
             case "Patrick"   -> Element.FIRE;
             case "Squidward" -> Element.WATER;
-            default          -> Element.ELECTRIC;
+            case "SpongeBob" -> Element.ELECTRIC;
+            default -> null;
         };
 
         loadImages();
@@ -188,6 +190,7 @@ public class GameController extends StackPane {
         setupUI();
         renderGrid();
         startTimer();
+        startSkillCooldownTimer();
         startEnemyTimer();
         startSpawnTimer();
         startSeaweedAnimation();
@@ -826,6 +829,14 @@ public class GameController extends StackPane {
         timer.play();
     }
 
+    private void startSkillCooldownTimer() {
+        skillCooldownTimer = new Timeline(
+                new KeyFrame(Duration.millis(100), e -> updateSkillButtonUI())
+        );
+        skillCooldownTimer.setCycleCount(Timeline.INDEFINITE);
+        skillCooldownTimer.play();
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // SHIELD BADGE
     // ═══════════════════════════════════════════════════════════════════════
@@ -997,7 +1008,7 @@ public class GameController extends StackPane {
         applyImageGraphic(skillBtn, currentSkillImg, 80);
 
         String skillText = switch (name) {
-            case "Patrick"   -> "Teleport\n[K]";
+            case "Patrick"   -> "Teleport\n     [K]";
             case "Squidward" -> "Generate\nshield [K]";
             default          -> "Freeze all\nenemies [K]";
         };
@@ -1358,12 +1369,45 @@ public class GameController extends StackPane {
     private void updateSkillButtonUI() {
         if (!(player instanceof Skillable s)) return;
         if (!s.isSkillReady()) {
-            long rem = Math.max(0, (s.getLastSkillUseTime() + (long) s.getCooldown() * 1000L
-                    - System.currentTimeMillis()) / 1000);
-            skillBtn.setGraphic(null);
-            skillBtn.setText(rem + "s");
-            skillBtn.setDisable(true);
-            skillBtn.setOpacity(0.7);
+            double rem = Math.max(0.0,
+                    (s.getLastSkillUseTime() + (long)(s.getCooldown() * 1000.0)
+                            - System.currentTimeMillis()) / 1000.0);
+
+            String remText = String.format("%.1f", rem) + "s";
+
+            if (currentSkillImg != null) {
+                ImageView iv = new ImageView(currentSkillImg);
+                iv.setFitWidth(80); iv.setFitHeight(80);
+                iv.setPreserveRatio(false); iv.setSmooth(false);
+                iv.setOpacity(0.7);
+
+                double r = 40.0;
+                iv.setClip(new javafx.scene.shape.Circle(r, r, r));
+
+                Label countdown = new Label(remText);
+                countdown.setStyle(
+                        "-fx-text-fill: white;" +
+                                "-fx-font-size: 20px;" +
+                                "-fx-font-weight: bold;" +
+                                "-fx-effect: dropshadow(gaussian, black, 0, 1, -1, -1) " +
+                                "dropshadow(gaussian, black, 0, 1,  1, -1) " +
+                                "dropshadow(gaussian, black, 0, 1, -1,  1) " +
+                                "dropshadow(gaussian, black, 0, 1,  1,  1);"
+                );
+
+                StackPane overlay = new StackPane(iv, countdown);
+                overlay.setPrefSize(80, 80);
+
+                skillBtn.setText("");
+                skillBtn.setGraphic(overlay);
+            } else {
+                skillBtn.setGraphic(null);
+                skillBtn.setText(remText);
+            }
+
+            skillBtn.setDisable(false);
+            skillBtn.setOpacity(1.0);
+
         } else {
             skillBtn.setText("");
             applyImageGraphic(skillBtn, currentSkillImg, 80);
