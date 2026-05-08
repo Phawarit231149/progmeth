@@ -19,6 +19,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -178,7 +179,12 @@ public class GameController extends StackPane {
         loadAudio();
         createPlayer();
         setupMap();
-        setupEnemies();
+        // ⭐️ สร้าง ScoreManager (track kills + goal)
+        scoreManager = new ScoreManager(config.getGoal());
+        // ⭐️ สร้าง EnemySpawner แล้ว setup initial waves
+        spawner = new EnemySpawner(config, enemies, map, seaweeds, hasBomb);
+        spawner.setPlayerPos(playerRow, playerCol);
+        spawner.setupInitial();
         setupUI();
         renderGrid();
         startTimer();
@@ -303,17 +309,15 @@ public class GameController extends StackPane {
 
     private void loadAudio() {
         explodeSfx = tryLoadAudio("/sounds/explosion.mp3");
-        explodeSfx.setVolume(10);
         // ⭐️ preload walk MediaPlayer ตั้งแต่ตอนเริ่มเกม กันปัญหา async load delay
         SoundManager.preloadWalk();
         SoundManager.playBGM("spongebobBGM.mp3");
     }
 
     private void startWalkSound() {
-        if (walkPlaying) {
-            SoundManager.startWalkLoop();
-            walkPlaying = true;
-        }
+        if (walkPlaying) return;          // ถ้าเล่นอยู่แล้วข้าม
+        SoundManager.startWalkLoop();
+        walkPlaying = true;
     }
 
     private void stopWalkSound() {
@@ -379,6 +383,35 @@ public class GameController extends StackPane {
             stack.getChildren().add(pv);
         }
         return stack;
+    }
+
+    /**
+     * สร้าง ImageView ที่แสดงเฉพาะ 1 quadrant ของรูป Hard enemy
+     * เมื่อ 4 ช่อง 2×2 มาเรียงกันจะรวมกันเป็นรูปเดียวเต็มตัว
+     * - (anchor)        → quadrant top-left
+     * - (anchor.x + 1)  → quadrant top-right
+     * - (anchor.y + 1)  → quadrant bottom-left
+     * - (both + 1)      → quadrant bottom-right
+     */
+    private ImageView makeHardEnemyQuadrant(Image img, Enemy en, int r, int c) {
+        double imgW = img.getWidth();
+        double imgH = img.getHeight();
+        int dx = c - en.getPosX();   // 0 or 1
+        int dy = r - en.getPosY();   // 0 or 1
+
+        ImageView iv = new ImageView(img);
+        iv.setViewport(new Rectangle2D(
+                (imgW / 2.0) * dx,
+                (imgH / 2.0) * dy,
+                imgW / 2.0,
+                imgH / 2.0
+        ));
+        double size = Math.max(cellSize - 2, 8);   // ใกล้เคียง full cell ให้ขอบ quadrant ติดกัน
+        iv.setFitWidth(size);
+        iv.setFitHeight(size);
+        iv.setPreserveRatio(false);
+        iv.setSmooth(false);
+        return iv;
     }
 
     private void createPlayer() {
@@ -451,12 +484,7 @@ public class GameController extends StackPane {
         return null;
     }
 
-    private void setupEnemies() {
-        scoreManager = new ScoreManager(config.getGoal());
-        spawner = new EnemySpawner(config, enemies, map, seaweeds, hasBomb);
-        spawner.setPlayerPos(playerRow, playerCol);
-        spawner.setupInitial();
-    }
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIMERS
@@ -601,7 +629,7 @@ public class GameController extends StackPane {
         int rows = config.getRows(), cols = config.getCols();
         boolean anyBombPlaced = bombsLeft < maxBombs;
 
-        if (anyBombPlaced && explodeSfx != null) SoundManager.playSFX(explodeSfx);
+        if (anyBombPlaced && explodeSfx != null) SoundManager.playSFX(explodeSfx, 0.4);  // ลดเสียงระเบิด 40%
 
         // Merge blast zones from all placed bombs
         boolean[][] totalZone = new boolean[rows][cols];
@@ -1181,8 +1209,18 @@ public class GameController extends StackPane {
                     ? "-fx-border-color: #00E5FF; -fx-border-width: 4px; -fx-border-radius: 100; " +
                     "-fx-background-radius: 100; -fx-background-color: #fff9c4;"
                     : baseStyle;
-            if (img != null) { cell.setStyle(style); cell.setGraphic(makeCellImage(img)); }
-            else             { cell.setStyle(style + "-fx-background-color: #ff7043; -fx-font-weight: bold;"); cell.setText("E"); }
+            if (img != null) {
+                cell.setStyle(style);
+                // ⭐️ HardEnemy ใช้พื้นที่ 2×2 — ตัดรูปเป็น 4 quadrant ให้ 4 ช่องประกอบกันเป็นรูปเดียว
+                if (en.getLevel() == Level.HARD) {
+                    cell.setGraphic(makeHardEnemyQuadrant(img, en, r, c));
+                } else {
+                    cell.setGraphic(makeCellImage(img));
+                }
+            } else {
+                cell.setStyle(style + "-fx-background-color: #ff7043; -fx-font-weight: bold;");
+                cell.setText("E");
+            }
             return;
         }
 

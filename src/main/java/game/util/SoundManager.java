@@ -34,15 +34,30 @@ public class SoundManager {
 
     public static void setSfxVolume(double volume) {
         sfxVolume = volume;
-        // อัปเดต volume ของ walk loop ทันทีถ้ากำลังเล่นอยู่
-        if (walkLoop != null) walkLoop.setVolume(sfxVolume / 100.0);
+        // อัปเดต volume ของ walk loop ทันทีถ้ากำลังเล่นอยู่ (boost x2, cap ที่ 1.0)
+        if (walkLoop != null && walkActive) walkLoop.setVolume(walkVolume());
+    }
+
+    /** คำนวณ volume สำหรับ walk loop — boost 2x จาก sfxVolume, cap ที่ 1.0 */
+    private static double walkVolume() {
+        return Math.min(1.0, (sfxVolume / 100.0) * 2.0);
     }
 
     public static void setMusicVolume(double volume) {
         musicVolume = volume;
         if (bgmPlayer != null) {
-            bgmPlayer.setVolume(musicVolume / 100.0);
+            double scale = bgmVolumeScale(currentBgmFile);
+            bgmPlayer.setVolume((musicVolume / 100.0) * scale);
         }
+    }
+
+    /** ปรับ scale volume ต่อไฟล์ — ไฟล์บางอัน mastering ดังเกิน ต้อง scale ลง */
+    private static double bgmVolumeScale(String fileName) {
+        if (fileName == null) return 1.0;
+        return switch (fileName) {
+            case "home.mp3" -> 0.4;       // home BGM ดังมาก ลดเหลือ 40%
+            default          -> 1.0;
+        };
     }
 
     public static void playBGM(String fileName) {
@@ -69,7 +84,9 @@ public class SoundManager {
             Media media = new Media(resource.toString());
             bgmPlayer = new MediaPlayer(media);
             bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-            bgmPlayer.setVolume(musicVolume / 100.0);
+            // ⭐️ ลด volume ของบางไฟล์ (home.mp3 ดังเกิน)
+            double scale = bgmVolumeScale(fileName);
+            bgmPlayer.setVolume((musicVolume / 100.0) * scale);
             bgmPlayer.play();
             currentBgmFile = fileName;
 
@@ -114,9 +131,17 @@ public class SoundManager {
 
     /** เล่น AudioClip SFX ทั่วไป — ใช้ระดับเสียง sfxVolume */
     public static void playSFX(AudioClip sfx) {
+        playSFX(sfx, 1.0);
+    }
+
+    /**
+     * เล่น AudioClip SFX โดยมี scale คูณกับ sfxVolume
+     * scale 1.0 = ดังเต็ม sfxVolume, scale 0.3 = ดังแค่ 30% ของ sfxVolume
+     */
+    public static void playSFX(AudioClip sfx, double scale) {
         if (sfx != null) {
             try {
-                sfx.setVolume(sfxVolume / 100.0);
+                sfx.setVolume((sfxVolume / 100.0) * scale);
                 sfx.play();
             } catch (Exception e) {
                 System.out.println("SFX Playback Error: " + e.getMessage());
@@ -153,7 +178,7 @@ public class SoundManager {
                 System.out.println("[Walk] MediaPlayer READY");
                 walkLoop.play();      // เริ่มเล่น (เงียบ)
                 // ถ้ามีคำขอเดินก่อนหน้านี้แล้ว — เปิดเสียงทันที
-                if (walkActive) walkLoop.setVolume(sfxVolume / 100.0);
+                if (walkActive) walkLoop.setVolume(walkVolume());
             });
             walkLoop.setOnError(() ->
                 System.out.println("[Walk] MediaPlayer error: " + walkLoop.getError()));
@@ -167,7 +192,7 @@ public class SoundManager {
         walkActive = true;
         if (walkLoop == null) preloadWalk();
         if (walkLoop == null) return;
-        walkLoop.setVolume(sfxVolume / 100.0);
+        walkLoop.setVolume(walkVolume());
         System.out.println("[Walk] startWalkLoop, status=" + walkLoop.getStatus()
                 + ", vol=" + walkLoop.getVolume());
     }

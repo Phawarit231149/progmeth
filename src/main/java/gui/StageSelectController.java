@@ -74,8 +74,8 @@ public class StageSelectController extends BorderPane {
         hbox.getChildren().addAll(rule, start);
 
         this.setTop(topPane);
-        this.setLeft(stageSelectBar());
         this.setRight(stageInformation());
+        this.setLeft(stageSelectBar());
         this.setCenter(buildStagePreview());
         this.setBottom(hbox);
     }

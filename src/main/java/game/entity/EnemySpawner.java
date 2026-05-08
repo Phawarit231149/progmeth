@@ -86,7 +86,7 @@ public class EnemySpawner {
             int[] pos = randomWalkable(3);
             if (pos == null) break;
             enemies.add(new MediumEnemy(1, pos[1], pos[0],
-                    randomElement(), someShielded && RNG.nextDouble() < 0.4));
+                    mediumElementForStage(), someShielded && RNG.nextDouble() < 0.4));
             totalSpawned++;
         }
     }
@@ -163,7 +163,7 @@ public class EnemySpawner {
 
     private void addMedium(int row, int col, boolean canShield) {
         enemies.add(new MediumEnemy(1, col, row,
-                randomElement(), canShield && RNG.nextDouble() < 0.4));
+                mediumElementForStage(), canShield && RNG.nextDouble() < 0.4));
         totalSpawned++;
     }
 
@@ -174,7 +174,7 @@ public class EnemySpawner {
             int c = RNG.nextInt(cols - 1);
             if (!canHardOccupy(r, c)) continue;
             if (Math.abs(r - playerRow) + Math.abs(c - playerCol) < 3) continue;
-            enemies.add(new HardEnemy(2, c, r, randomElement(), false));
+            enemies.add(new HardEnemy(2, c, r, hardElementRandom(), false));
             totalSpawned++;
             return;
         }
@@ -217,5 +217,75 @@ public class EnemySpawner {
     private Element randomElement() {
         Element[] elems = {Element.FIRE, Element.WATER, Element.ELECTRIC};
         return elems[RNG.nextInt(elems.length)];
+    }
+
+    /**
+     * เลือก element ของ MEDIUM enemy ตาม stage:
+     *  Stage 1: WATER 100%
+     *  Stage 2: ELECTRIC 70% / FIRE 30%
+     *  Stage 3: FIRE 70% / WATER 30%
+     *  Stage 4: WATER 70% / ELECTRIC 30%
+     *  Stage 5: 33/33/33
+     * และพยายามไม่ให้ element ซ้ำกับตัวก่อนหน้า
+     */
+    private Element lastSpawnedElement = null;
+
+    private Element mediumElementForStage() {
+        int stage = config.getLevel();
+        Element[] choices;
+        double[]  weights;
+
+        switch (stage) {
+            case 1:
+                lastSpawnedElement = Element.WATER;
+                return Element.WATER;
+            case 2:
+                choices = new Element[]{Element.ELECTRIC, Element.FIRE};
+                weights = new double[]{0.7, 0.3};
+                break;
+            case 3:
+                choices = new Element[]{Element.FIRE, Element.WATER};
+                weights = new double[]{0.7, 0.3};
+                break;
+            case 4:
+                choices = new Element[]{Element.WATER, Element.ELECTRIC};
+                weights = new double[]{0.7, 0.3};
+                break;
+            case 5:
+            default:
+                choices = new Element[]{Element.FIRE, Element.WATER, Element.ELECTRIC};
+                weights = new double[]{1.0/3, 1.0/3, 1.0/3};
+                break;
+        }
+
+        Element picked = pickWeighted(choices, weights);
+        if (picked == lastSpawnedElement && choices.length > 1) {
+            Element retry = pickWeighted(choices, weights);
+            if (retry != lastSpawnedElement) picked = retry;
+        }
+        lastSpawnedElement = picked;
+        return picked;
+    }
+
+    private Element hardElementRandom() {
+        Element[] choices = {Element.FIRE, Element.WATER, Element.ELECTRIC};
+        Element picked;
+        int attempts = 0;
+        do {
+            picked = choices[RNG.nextInt(choices.length)];
+            attempts++;
+        } while (picked == lastSpawnedElement && attempts < 3);
+        lastSpawnedElement = picked;
+        return picked;
+    }
+
+    private Element pickWeighted(Element[] choices, double[] weights) {
+        double r = RNG.nextDouble();
+        double sum = 0;
+        for (int i = 0; i < choices.length; i++) {
+            sum += weights[i];
+            if (r < sum) return choices[i];
+        }
+        return choices[choices.length - 1];
     }
 }
