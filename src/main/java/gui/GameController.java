@@ -90,6 +90,9 @@ public class GameController extends StackPane {
     private Timeline seaweedAnimTimer;
     private Timeline skillCooldownTimer;
     private Timeline immortalFlicker;
+    private Timeline phase2AttackTimer;
+    private static final int  PHASE2_ATTACK_TILE_COUNT  = 50;
+    private static final long PHASE2_ATTACK_COOLDOWN_MS = 7500;
     private int seaweedFrame = 0;
 
     // ── UI ────────────────────────────────────────────────────────────────
@@ -164,6 +167,9 @@ public class GameController extends StackPane {
     private final java.util.Set<javafx.scene.input.KeyCode> heldMoveKeys = new java.util.HashSet<>();
     private boolean walkPlaying = false;
 
+    // ── Random ────────────────────────────────────────────────────────────
+    private static final java.util.Random RNG = new java.util.Random();
+
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════
@@ -195,6 +201,7 @@ public class GameController extends StackPane {
         startEnemyTimer();
         startSpawnTimer();
         startSeaweedAnimation();
+        if (config.getLevel() == 5) startPhase2AttackTimer(); //
 
         this.setFocusTraversable(true);
         this.setOnKeyPressed(event -> {
@@ -513,14 +520,31 @@ public class GameController extends StackPane {
     }
 
     private void startEnemyTimer() {
-        enemyTimer = new Timeline(new KeyFrame(Duration.millis(1000), e -> {
-            spawner.setPlayerPos(playerRow, playerCol);
-            for (Enemy en : enemies)
-                en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
-                        config.getRows(), config.getCols());
-            renderGrid();
-            checkPlayerEnemyCollision();
-        }));
+        if(! spawner.isPhase2Started()){
+            enemyTimer = new Timeline(new KeyFrame(Duration.millis(1000), e -> {
+                spawner.setPlayerPos(playerRow, playerCol);
+                for (Enemy en : enemies) {
+                    en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
+                            config.getRows(), config.getCols());
+                }
+                renderGrid();
+                checkPlayerEnemyCollision();
+                //adjustEnemyTimerSpeed();
+            }));
+
+        } else {
+            enemyTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> {
+                spawner.setPlayerPos(playerRow, playerCol);
+                for (Enemy en : enemies) {
+                    en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
+                            config.getRows(), config.getCols());
+                }
+                renderGrid();
+                checkPlayerEnemyCollision();
+                //adjustEnemyTimerSpeed();
+            }));
+        }
+
         enemyTimer.setCycleCount(Timeline.INDEFINITE);
         enemyTimer.play();
     }
@@ -532,6 +556,25 @@ public class GameController extends StackPane {
         }));
         spawnTimer.setCycleCount(Timeline.INDEFINITE);
         spawnTimer.play();
+    }
+
+    private void adjustEnemyTimerSpeed() {
+        double targetMs = (enemies.size() == 1) ? 600 : 1000;
+        double currentMs = enemyTimer.getKeyFrames().get(0).getTime().toMillis();
+        if (currentMs == targetMs) return;
+
+        enemyTimer.stop();
+        enemyTimer.getKeyFrames().setAll(new KeyFrame(Duration.millis(targetMs), e -> {
+            spawner.setPlayerPos(playerRow, playerCol);
+            for (Enemy en : enemies) {
+                en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
+                        config.getRows(), config.getCols());
+            }
+            renderGrid();
+            checkPlayerEnemyCollision();
+            adjustEnemyTimerSpeed();
+        }));
+        enemyTimer.play();
     }
 
     private void startSeaweedAnimation() {
@@ -547,20 +590,21 @@ public class GameController extends StackPane {
     }
 
     private void pauseAll() {
-        if (timer          != null) timer.stop();
-        if (enemyTimer     != null) enemyTimer.stop();
-        if (spawnTimer     != null) spawnTimer.stop();
-        if (seaweedAnimTimer != null) seaweedAnimTimer.stop();
-        // หยุดเสียงเดิน + เคลียร์ปุ่มที่กดค้าง (กันเสียงค้างตอน popup เด้ง)
+        if (timer             != null) timer.stop();
+        if (enemyTimer        != null) enemyTimer.stop();
+        if (spawnTimer        != null) spawnTimer.stop();
+        if (seaweedAnimTimer  != null) seaweedAnimTimer.stop();
+        if (phase2AttackTimer != null) phase2AttackTimer.stop(); // ← add
         heldMoveKeys.clear();
         stopWalkSound();
     }
 
     private void resumeAll() {
-        if (timer          != null) timer.play();
-        if (enemyTimer     != null) enemyTimer.play();
-        if (spawnTimer     != null) spawnTimer.play();
-        if (seaweedAnimTimer != null) seaweedAnimTimer.play();
+        if (timer             != null) timer.play();
+        if (enemyTimer        != null) enemyTimer.play();
+        if (spawnTimer        != null) spawnTimer.play();
+        if (seaweedAnimTimer  != null) seaweedAnimTimer.play();
+        if (phase2AttackTimer != null) phase2AttackTimer.play(); // ← add
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -710,10 +754,13 @@ public class GameController extends StackPane {
                     return;
                 }
                 // Stage 5 phase-2 trigger
+                if(config.getLevel() == 5) {triggerPhase2();}
+                /*
                 if (config.getLevel() == 5 && !spawner.isPhase2Started()
                         && scoreManager.getScore() >= 25) {
                     triggerPhase2();
                 }
+                 */
             }
         }
         updateKillLabel();
@@ -758,7 +805,39 @@ public class GameController extends StackPane {
             if (spawner.tick()) renderGrid();
         }));
         spawnTimer.play();
+
+        // Start the map-wide random attack gimmick
+        startPhase2AttackTimer();
         renderGrid();
+    }
+
+    private void startPhase2AttackTimer() {
+        if (phase2AttackTimer != null) phase2AttackTimer.stop();
+        phase2AttackTimer = new Timeline(new KeyFrame(
+                Duration.millis(PHASE2_ATTACK_COOLDOWN_MS), e -> {
+            List<int[]> tiles = rollPhase2AttackTiles();
+            if (!tiles.isEmpty()) triggerHardEnemyAttack(tiles);
+        }));
+        phase2AttackTimer.setCycleCount(Timeline.INDEFINITE);
+        phase2AttackTimer.play();
+    }
+
+    private List<int[]> rollPhase2AttackTiles() {
+        int rows = config.getRows(), cols = config.getCols();
+        List<int[]> tiles = new ArrayList<>();
+        int attempts = 0;
+        while (tiles.size() < PHASE2_ATTACK_TILE_COUNT && attempts < 200) {
+            attempts++;
+            int r = RNG.nextInt(rows);
+            int c = RNG.nextInt(cols);
+            boolean duplicate = false;
+            for (int[] t : tiles) {
+                if (t[0] == r && t[1] == c) { duplicate = true; break; }
+            }
+            if (duplicate) continue;
+            tiles.add(new int[]{r, c});
+        }
+        return tiles;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1326,6 +1405,68 @@ public class GameController extends StackPane {
         }
     }
 
+    /**
+     * Flashes the given tiles red for 300 ms, then checks if the player
+     * is standing on any of them and applies damage if so.
+     */
+    /**
+     * Shows a 2-second countdown on danger tiles, then applies damage
+     * if the player is still standing on any of them.
+     */
+    private void triggerHardEnemyAttack(List<int[]> tiles) {
+        for (int[] tile : tiles) {
+            int r = tile[0], c = tile[1];
+            Button cell = cells[r][c];
+            String savedStyle = cell.getStyle();
+
+            // Kick off a 20-frame animation: ~100ms per frame = 2 seconds total
+            Timeline countdown = new Timeline();
+
+            for (int frame = 0; frame <= 20; frame++) {
+                final int f = frame;
+                countdown.getKeyFrames().add(new KeyFrame(Duration.millis(f * 100), ev -> {
+                    double secondsLeft = (20 - f) / 10.0; // 2.0 → 0.0
+
+                    // Interpolate background: yellow → red as time runs out
+                    int red   = 200 + (int)(55  * (f / 20.0)); // 200→255
+                    int green = 200 - (int)(200 * (f / 20.0)); // 200→0
+                    String bg = String.format("rgba(%d,%d,0,0.85)", red, green);
+
+                    cell.setStyle(
+                            "-fx-background-color: " + bg + ";" +
+                                    "-fx-border-color: #ff1744;" +
+                                    "-fx-border-width: 2px;"
+                    );
+
+                    // Show countdown number: "2", "1", or "!" in the final frames
+                    String label;
+                    if (secondsLeft > 1.05)      label = "2";
+                    else if (secondsLeft > 0.05) label = "1";
+                    else                         label = "!";
+
+                    cell.setText(label);
+                    cell.setGraphic(null);
+                    cell.setFont(javafx.scene.text.Font.font("Arial", javafx.scene.text.FontWeight.BOLD,
+                            Math.min(cellSize * 0.55, 28)));
+                    cell.setTextFill(javafx.scene.paint.Color.WHITE);
+                }));
+            }
+
+            // Final frame: deal damage and restore tile
+            countdown.getKeyFrames().add(new KeyFrame(Duration.millis(2050), ev -> {
+                cell.setStyle(savedStyle);
+                cell.setText("");
+                cell.setFont(javafx.scene.text.Font.font(12));
+                renderGrid(); // restore proper graphic (seaweed, buff, etc.)
+                if (r == playerRow && c == playerCol) {
+                    applyBlastDamageToPlayer();
+                }
+            }));
+
+            countdown.play();
+        }
+    }
+
     private void setGridStyle(String style) {
         setBaseStyle(style);
         for (int r = 0; r < config.getRows(); r++)
@@ -1366,6 +1507,11 @@ public class GameController extends StackPane {
         if (cells != null) {
             Button cell = cells[playerRow][playerCol];
             cell.setOpacity(1.0);
+        }
+        for (int r = 0; r < config.getRows(); r++){
+            for (int c = 0; c < config.getCols(); c++){
+                cells[r][c].setOpacity(1.0);
+            }
         }
     }
 

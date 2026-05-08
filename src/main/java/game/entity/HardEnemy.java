@@ -11,7 +11,7 @@ public class HardEnemy extends Enemy {
     public HardEnemy(int size, int posX, int posY, Element element, boolean shielded) {
         super(size, posX, posY, element, shielded);
         setLevel(Level.HARD);
-        setHealth(10);
+        setHealth(50);
         setDamage(2);
     }
 

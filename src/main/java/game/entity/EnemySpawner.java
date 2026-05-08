@@ -68,7 +68,8 @@ public class EnemySpawner {
             case 2 -> spawnInitialMedium(7,  false);
             case 3 -> spawnInitialMedium(5,  true);
             case 4 -> spawnInitialMedium(7,  true);
-            case 5 -> spawnInitialMedium(10, false);
+            //case 5 -> spawnInitialMedium(10, false);
+            case 5 -> triggerPhase2();
         }
     }
 
