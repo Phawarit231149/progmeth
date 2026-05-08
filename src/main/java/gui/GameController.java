@@ -89,6 +89,7 @@ public class GameController extends StackPane {
     private Timeline spawnTimer;
     private Timeline seaweedAnimTimer;
     private Timeline skillCooldownTimer;
+    private Timeline immortalFlicker;
     private int seaweedFrame = 0;
 
     // ── UI ────────────────────────────────────────────────────────────────
@@ -680,9 +681,10 @@ public class GameController extends StackPane {
                 updateHearts();
             }
             player.setImmortal(true);
+            startImmortalFlicker();
             new Timeline(new KeyFrame(
                     Duration.millis(player.getImmortalDuration()),
-                    e -> player.setImmortal(false)
+                    e -> { player.setImmortal(false); stopImmortalFlicker(); }
             )).play();
         }
     }
@@ -738,9 +740,10 @@ public class GameController extends StackPane {
             updateHearts();
 
             player.setImmortal(true);
+            startImmortalFlicker();
             new Timeline(new KeyFrame(
                     Duration.millis(player.getImmortalDuration()),
-                    e -> player.setImmortal(false)
+                    e -> { player.setImmortal(false); stopImmortalFlicker(); }
             )).play();
         }
     }
@@ -1066,11 +1069,21 @@ public class GameController extends StackPane {
     // POPUPS
     // ═══════════════════════════════════════════════════════════════════════
 
+    private Stage getOwnerStage() {
+        return (Stage) this.getScene().getWindow();
+    }
+
     private void skillsInformation() {
         if (infoPopup != null && infoPopup.isShowing()) { infoPopup.close(); resumeAll(); return; }
+
+        Stage owner = getOwnerStage();
+
         infoPopup = new Stage();
-        infoPopup.initModality(Modality.APPLICATION_MODAL);
+        infoPopup.initOwner(owner);
+        infoPopup.initModality(Modality.WINDOW_MODAL);
+        infoPopup.initStyle(javafx.stage.StageStyle.UNDECORATED); // ⭐️ ขึ้นบน fullscreen ได้
         infoPopup.setTitle("Skills info");
+
         Label text = new Label(
                 "• Bomb Capacity Up: Increase max\nbombs you can drop.\n\n" +
                         "• Blast Radius: Expand the explosion\nrange.\n\n" +
@@ -1078,23 +1091,44 @@ public class GameController extends StackPane {
                         "• Bubble Shield: Protects you from one\ninstance of damage.\n\n" +
                         "• Quick Heal: Restore your HP\nfor 1 immediately.");
         text.setFont(Font.font(18));
-        VBox layout = new VBox(20, text);
+
+        Button closeBtn = new Button("Close  [U]");
+        closeBtn.setPrefWidth(120);
+        closeBtn.setOnAction(e -> { infoPopup.close(); resumeAll(); this.requestFocus(); });
+
+        VBox layout = new VBox(20, text, closeBtn);
         layout.setAlignment(Pos.CENTER);
-        Scene scene = new Scene(layout, 400, 380);
+        layout.setPadding(new Insets(24));
+        layout.setStyle("-fx-background-color: white; -fx-border-color: #90a4ae; -fx-border-width: 2;");
+
+        Scene scene = new Scene(layout, 400, 420);
         scene.setOnKeyPressed(ev -> {
             if (ev.getCode() == javafx.scene.input.KeyCode.U) {
                 infoPopup.close(); resumeAll(); this.requestFocus();
             }
         });
         infoPopup.setScene(scene);
+        infoPopup.setOnCloseRequest(ev -> { resumeAll(); this.requestFocus(); });
+
+        infoPopup.setOnShown(ev -> {
+            infoPopup.setX(owner.getX() + (owner.getWidth()  - 400) / 2.0);
+            infoPopup.setY(owner.getY() + (owner.getHeight() - 420) / 2.0);
+        });
+
+        pauseAll();
         infoPopup.show();
     }
 
     private void showPauseMenu() {
         if (pausePopup != null && pausePopup.isShowing()) { pausePopup.close(); resumeAll(); return; }
         pauseAll();
+
+        Stage owner = getOwnerStage();
+
         pausePopup = new Stage();
-        pausePopup.initModality(Modality.APPLICATION_MODAL);
+        pausePopup.initOwner(owner);
+        pausePopup.initModality(Modality.WINDOW_MODAL);
+        pausePopup.initStyle(javafx.stage.StageStyle.UNDECORATED); // ⭐️ ไม่มี title bar — ขึ้นบน fullscreen ได้
         pausePopup.setTitle("Paused");
 
         Button resumeBtn = new Button("Resume");
@@ -1107,7 +1141,6 @@ public class GameController extends StackPane {
         quitBtn.setPrefSize(220, 55);
         quitBtn.setOnAction(e -> { pausePopup.close(); this.getScene().setRoot(new HomeController()); });
 
-        // ⭐️ UI sounds
         SoundManager.attachUiSfx(resumeBtn);
         SoundManager.attachUiSfx(quitBtn);
 
@@ -1140,7 +1173,14 @@ public class GameController extends StackPane {
             }
         });
         pausePopup.setScene(scene);
-        pausePopup.setOnCloseRequest(ev -> resumeAll());
+        pausePopup.setOnCloseRequest(ev -> { resumeAll(); this.requestFocus(); });
+
+        // ⭐️ จัดตำแหน่ง popup กึ่งกลางหน้าจอของ owner โดยไม่ต้องออก fullscreen
+        pausePopup.setOnShown(ev -> {
+            pausePopup.setX(owner.getX() + (owner.getWidth()  - POPUP_W) / 2.0);
+            pausePopup.setY(owner.getY() + (owner.getHeight() - POPUP_H) / 2.0);
+        });
+
         pausePopup.show();
     }
 
@@ -1298,6 +1338,35 @@ public class GameController extends StackPane {
         for (int r = 0; r < config.getRows(); r++)
             for (int c = 0; c < config.getCols(); c++)
                 cells[r][c].setStyle(baseStyle);
+    }
+
+    private void startImmortalFlicker() {
+        stopImmortalFlicker(); // หยุดอันเก่าก่อนถ้ามีอยู่
+        immortalFlicker = new Timeline(
+                new KeyFrame(Duration.millis(0),   e -> styleCell(playerRow, playerCol)),
+                new KeyFrame(Duration.millis(100), e -> {
+                    Button cell = cells[playerRow][playerCol];
+                    cell.setOpacity(0.25);
+                }),
+                new KeyFrame(Duration.millis(200), e -> {
+                    Button cell = cells[playerRow][playerCol];
+                    cell.setOpacity(1.0);
+                })
+        );
+        immortalFlicker.setCycleCount(Timeline.INDEFINITE);
+        immortalFlicker.play();
+    }
+
+    private void stopImmortalFlicker() {
+        if (immortalFlicker != null) {
+            immortalFlicker.stop();
+            immortalFlicker = null;
+        }
+        // คืน opacity ให้ cell ของ player กลับปกติ
+        if (cells != null) {
+            Button cell = cells[playerRow][playerCol];
+            cell.setOpacity(1.0);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
