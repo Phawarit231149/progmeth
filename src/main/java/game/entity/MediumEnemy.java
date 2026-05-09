@@ -11,8 +11,8 @@ public class MediumEnemy extends Enemy {
     public MediumEnemy(int size, int posX, int posY, Element element, boolean shielded) {
         super(size, posX, posY, element, shielded);
         setLevel(Level.MEDIUM);
-        setHealth(5);
-        setDamage(1);
+        setHealth(10);
+        setDamage(2);
     }
 
     @Override

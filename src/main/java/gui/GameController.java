@@ -70,7 +70,7 @@ public class GameController extends StackPane {
     private final ElementUtil elementUtil = new ElementUtil();
 
     // ── Game state ────────────────────────────────────────────────────────
-    private int     hearts    = 5;
+    private int     hearts    = 10;
     private int     timeLeft  = 300;
     private int     bombsLeft;
     private int     maxBombs;
@@ -427,9 +427,9 @@ public class GameController extends StackPane {
 
     private void createPlayer() {
         player = switch (element) {
-            case FIRE     -> new FireCharacter(5, 1, 1, 5);
-            case WATER    -> new WaterCharacter(5, 1, 1, 5);
-            case ELECTRIC -> new ElectricCharacter(5, 1, 1, 5);
+            case FIRE     -> new FireCharacter(10, 2, 1, 5);
+            case WATER    -> new WaterCharacter(10, 2, 1, 5);
+            case ELECTRIC -> new ElectricCharacter(10, 2, 1, 5);
             default -> null;
         };
         int[] spawn = config.getPlayerSpawn();
@@ -624,7 +624,7 @@ public class GameController extends StackPane {
         } else if (buff instanceof ShieldBuff) {
             activateShieldBadge();
         } else if (buff instanceof HealBuff) {
-            if (hearts < 5) { hearts++; updateHearts(); }
+            if (hearts < 10) { hearts++; updateHearts(); }
         }
     }
 
@@ -1544,9 +1544,10 @@ public class GameController extends StackPane {
 
     private void updateHearts() {
         heartsBox.getChildren().clear();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             Label h = new Label(i < hearts ? "♥" : "♡");
-            h.setStyle("-fx-font-size: 26px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
+            // ลดขนาด heart เล็กน้อยเพื่อให้ 10 ดวงพอดี ไม่ล้น
+            h.setStyle("-fx-font-size: 20px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
             heartsBox.getChildren().add(h);
         }
         if (hearts <= 0) { setGameStatus(Status.LOSE); gameOver(); }
@@ -1652,7 +1653,7 @@ public class GameController extends StackPane {
 
     public void setGameStatus(Status s) { this.gameStatus = s; }
     public int  getHearts()             { return hearts; }
-    public void setHearts(int h)        { this.hearts = Math.max(0, Math.min(5, h)); }
+    public void setHearts(int h)        { this.hearts = Math.max(0, Math.min(10, h)); }
     public void setBaseStyle(String s)  { this.baseStyle = s; }
 
     public void takeDamage() {
