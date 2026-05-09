@@ -9,7 +9,8 @@ import java.util.List;
 public class HardEnemy extends Enemy {
 
     public HardEnemy(int size, int posX, int posY, Element element, boolean shielded) {
-        super(size, posX, posY, element, shielded);
+        // KingNeptune ไม่มีธาตุ — บังคับเป็น NONE เสมอ (โจมตี 2 ดาเมจ neutral)
+        super(size, posX, posY, Element.NONE, shielded);
         setLevel(Level.HARD);
         setHealth(50);
         setDamage(2);
