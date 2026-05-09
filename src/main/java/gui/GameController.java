@@ -70,7 +70,7 @@ public class GameController extends StackPane {
     private final ElementUtil elementUtil = new ElementUtil();
 
     // ── Game state ────────────────────────────────────────────────────────
-    private int     hearts    = 5;
+    private int     hearts    = 10;
     private int     timeLeft  = 300;
     private int     bombsLeft;
     private int     maxBombs;
@@ -1110,7 +1110,7 @@ public class GameController extends StackPane {
     private HBox buildBottomBar() {
         heartsBox = new HBox(8);
         heartsBox.setAlignment(Pos.CENTER);
-        heartsBox.setPadding(new Insets(10));
+        heartsBox.setPadding(new Insets(10, 210, 10, 0)); // ✅ right padding pushes hearts left toward map center
         updateHearts();
         return heartsBox;
     }
@@ -1544,7 +1544,7 @@ public class GameController extends StackPane {
 
     private void updateHearts() {
         heartsBox.getChildren().clear();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             Label h = new Label(i < hearts ? "♥" : "♡");
             h.setStyle("-fx-font-size: 26px; -fx-text-fill: " + (i < hearts ? "#e53935" : "#9e9e9e") + ";");
             heartsBox.getChildren().add(h);
