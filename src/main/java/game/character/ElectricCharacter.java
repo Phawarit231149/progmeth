@@ -4,8 +4,8 @@ import game.Element;
 
 public class ElectricCharacter extends Character implements Skillable {
 
-    private static final long STUN_DURATION_MS = 2000L;
     private static final int  COOLDOWN_SECONDS = 30;
+    private static final long STUN_DURATION_MS = 2000L;
 
     // ── Constructor ───────────────────────────
     public ElectricCharacter(int health, int damage, int bombRange, int maxBombs) {
@@ -17,12 +17,6 @@ public class ElectricCharacter extends Character implements Skillable {
     public void useSkill() {
         if (!isSkillReady()) return;
         recordSkillUse(); // handled in Character base class
-    }
-
-    @Override
-    public boolean isSkillReady() {
-        return (System.currentTimeMillis() - getLastSkillUseTime())
-                >= (long) COOLDOWN_SECONDS * 1000L;
     }
 
     @Override

@@ -427,9 +427,9 @@ public class GameController extends StackPane {
 
     private void createPlayer() {
         player = switch (element) {
-            case FIRE     -> new FireCharacter(5, 1, 1, 5);
-            case WATER    -> new WaterCharacter(5, 1, 1, 5);
-            case ELECTRIC -> new ElectricCharacter(5, 1, 1, 5);
+            case FIRE     -> new FireCharacter(10, 2, 1, 5);
+            case WATER    -> new WaterCharacter(10, 2, 1, 5);
+            case ELECTRIC -> new ElectricCharacter(10, 2, 1, 5);
             default -> null;
         };
         int[] spawn = config.getPlayerSpawn();
