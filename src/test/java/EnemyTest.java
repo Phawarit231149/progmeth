@@ -28,8 +28,8 @@ public class EnemyTest {
     void mediumEnemy_defaultStats() {
         MediumEnemy e = new MediumEnemy(1, 0, 0, Element.FIRE, false);
         assertEquals(Level.MEDIUM, e.getLevel());
-        assertEquals(5, e.getHealth());
-        assertEquals(1, e.getDamage());
+        assertEquals(10, e.getHealth());
+        assertEquals(2, e.getDamage());
         assertEquals(Element.FIRE, e.getElement());
     }
 

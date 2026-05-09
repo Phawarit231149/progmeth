@@ -18,6 +18,7 @@ public class SoundManager {
     private static AudioClip currentStinger = null; // ติดตามเสียง win/lose
 
     // ⭐️ Walk loop ใช้ MediaPlayer (ลู้ปแน่นอนกว่า AudioClip)
+    private static boolean walkActive = false;
     private static MediaPlayer walkLoop = null;
 
     // ⭐️ UI SFX clips (โหลดครั้งเดียว ใช้ตลอด)
@@ -129,11 +130,6 @@ public class SoundManager {
         currentBgmFile = null;
     }
 
-    /** เล่น AudioClip SFX ทั่วไป — ใช้ระดับเสียง sfxVolume */
-    public static void playSFX(AudioClip sfx) {
-        playSFX(sfx, 1.0);
-    }
-
     /**
      * เล่น AudioClip SFX โดยมี scale คูณกับ sfxVolume
      * scale 1.0 = ดังเต็ม sfxVolume, scale 0.3 = ดังแค่ 30% ของ sfxVolume
@@ -154,8 +150,6 @@ public class SoundManager {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** track ว่าตอนนี้ "อยู่ในสถานะกำลังเดิน" หรือไม่ */
-    private static boolean walkActive = false;
-
     /**
      * Preload walk MediaPlayer + เริ่มเล่นทันทีที่ volume 0
      * วิธีนี้กันปัญหา async load — เพราะ MediaPlayer พร้อมเล่นตลอดเวลา

@@ -105,13 +105,8 @@ public class StageData {
             new StageData(5, 10, 19, 30, MAP_V),   // Stage V   — 30 kills (final)
     };
 
-    public int getLevel() { return level; }
-    public int getRows()  { return rows; }
-    public int getCols()  { return cols; }
-    public int getGoal()  { return goal; }
-    public String[] getLayout() { return layout; }
-
     /** อ่าน character ที่ตำแหน่ง (r,c). คืน '.' ถ้าเลย bound */
+
     public char tileAt(int r, int c) {
         if (r < 0 || r >= rows) return '.';
         String row = layout[r];
@@ -139,4 +134,11 @@ public class StageData {
         }
         return spawns;
     }
+
+    // Getter & Setter
+    public int getLevel() { return level; }
+    public int getRows()  { return rows; }
+    public int getCols()  { return cols; }
+    public int getGoal()  { return goal; }
+    public String[] getLayout() { return layout; }
 }

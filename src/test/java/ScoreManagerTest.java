@@ -27,7 +27,7 @@ public class ScoreManagerTest {
     @Test
     void addKill_incrementsByOne() {
         ScoreManager sm = new ScoreManager(10);
-        sm.addKill();
+        sm.addKill(1);
         assertEquals(1, sm.getScore());
     }
 
@@ -41,8 +41,8 @@ public class ScoreManagerTest {
     @Test
     void addKill_accumulates() {
         ScoreManager sm = new ScoreManager(20);
-        sm.addKill();
-        sm.addKill();
+        sm.addKill(1);
+        sm.addKill(1);
         sm.addKill(3);
         assertEquals(5, sm.getScore());
     }
@@ -52,7 +52,7 @@ public class ScoreManagerTest {
     @Test
     void score_cappedAtGoal() {
         ScoreManager sm = new ScoreManager(5);
-        for (int i = 0; i < 100; i++) sm.addKill();
+        for (int i = 0; i < 100; i++) sm.addKill(1);
         assertEquals(5, sm.getScore());
     }
 
@@ -60,7 +60,7 @@ public class ScoreManagerTest {
     void addKill_noOpAfterGoalReached() {
         ScoreManager sm = new ScoreManager(3);
         sm.addKill(3);   // reaches goal
-        sm.addKill();    // should be ignored
+        sm.addKill(1);    // should be ignored
         assertEquals(3, sm.getScore());
     }
 

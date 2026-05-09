@@ -14,9 +14,6 @@ public class ScoreManager {
         this.goal  = goal;
     }
 
-    /** Record one enemy kill (worth 1 point). */
-    public void addKill() { addKill(1); }
-
     /** Record a kill worth {@code points} (e.g. Hard enemies could be worth more). */
     public void addKill(int points) {
         if (hasReachedGoal()) return;
@@ -28,8 +25,9 @@ public class ScoreManager {
 
     public void reset() { score = 0; }
 
+    public String formatProgress()     { return score + " / " + goal; }
+
     public int    getScore()           { return score; }
     public int    getGoal()            { return goal; }
     public int    getRemaining()       { return Math.max(goal - score, 0); }
-    public String formatProgress()     { return score + " / " + goal; }
 }

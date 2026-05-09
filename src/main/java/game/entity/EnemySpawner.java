@@ -28,6 +28,7 @@ public class EnemySpawner {
     private final Seaweed[][] seaweeds;
     private final boolean[][] hasBomb;
 
+    private Element lastSpawnedElement = null;
     private int     totalSpawned  = 0;
     private int     stagePhase    = 1;
     private boolean phase2Started = false;
@@ -69,7 +70,6 @@ public class EnemySpawner {
             case 3 -> spawnInitialMedium(5,  true);
             case 4 -> spawnInitialMedium(7,  true);
             case 5 -> spawnInitialMedium(10, false);
-            //case 5 -> triggerPhase2();
         }
     }
 
@@ -143,7 +143,7 @@ public class EnemySpawner {
     }
 
     public boolean isPhase2Started() { return phase2Started; }
-    public int     getStagePhase()   { return stagePhase;    }
+    //public int     getStagePhase()   { return stagePhase;    }
 
     // ═══════════════════════════════════════════
     // SPAWN HELPERS
@@ -215,11 +215,6 @@ public class EnemySpawner {
         return null;
     }
 
-    private Element randomElement() {
-        Element[] elems = {Element.FIRE, Element.WATER, Element.ELECTRIC};
-        return elems[RNG.nextInt(elems.length)];
-    }
-
     /**
      * เลือก element ของ MEDIUM enemy ตาม stage:
      *  Stage 1: WATER 100%
@@ -229,7 +224,6 @@ public class EnemySpawner {
      *  Stage 5: 33/33/33
      * และพยายามไม่ให้ element ซ้ำกับตัวก่อนหน้า
      */
-    private Element lastSpawnedElement = null;
 
     private Element mediumElementForStage() {
         int stage = config.getLevel();

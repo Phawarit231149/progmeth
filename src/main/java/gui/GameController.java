@@ -716,7 +716,7 @@ public class GameController extends StackPane {
 
             if (en.getHealth() <= 0) {
                 it.remove();
-                scoreManager.addKill();
+                scoreManager.addKill(1);
                 updateKillLabel();
                 if (scoreManager.hasReachedGoal()) {
                     setGameStatus(config.getLevel() == 5 ? Status.CLEAR : Status.WIN);

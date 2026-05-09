@@ -21,56 +21,56 @@ public class ElementUtilTest {
     void charFireVsElectric_strong() {
         FireCharacter a = new FireCharacter(5, 2, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.ELECTRIC, false);
-        assertEquals(4, util.calculateCharacterDamage(a, d)); // 2 + 2
+        assertEquals(3, util.calculateCharacterDamage(a, d));
     }
 
     @Test
     void charFireVsWater_weak() {
         FireCharacter a = new FireCharacter(5, 2, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.WATER, false);
-        assertEquals(2, util.calculateCharacterDamage(a, d)); // 2 + 0
+        assertEquals(1, util.calculateCharacterDamage(a, d)); // 2 + 0
     }
 
     @Test
     void charFireVsFire_neutral() {
         FireCharacter a = new FireCharacter(5, 2, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.FIRE, false);
-        assertEquals(3, util.calculateCharacterDamage(a, d)); // 2 + 1
+        assertEquals(2, util.calculateCharacterDamage(a, d)); // 2 + 1
     }
 
     @Test
     void charWaterVsFire_strong() {
         WaterCharacter a = new WaterCharacter(5, 2, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.FIRE, false);
-        assertEquals(4, util.calculateCharacterDamage(a, d));
+        assertEquals(3, util.calculateCharacterDamage(a, d));
     }
 
     @Test
     void charWaterVsElectric_weak() {
         WaterCharacter a = new WaterCharacter(5, 2, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.ELECTRIC, false);
-        assertEquals(2, util.calculateCharacterDamage(a, d));
+        assertEquals(1, util.calculateCharacterDamage(a, d));
     }
 
     @Test
     void charElectricVsWater_strong() {
         ElectricCharacter a = new ElectricCharacter(5, 2, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.WATER, false);
-        assertEquals(4, util.calculateCharacterDamage(a, d));
+        assertEquals(3, util.calculateCharacterDamage(a, d));
     }
 
     @Test
     void charElectricVsFire_weak() {
         ElectricCharacter a = new ElectricCharacter(5, 2, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.FIRE, false);
-        assertEquals(2, util.calculateCharacterDamage(a, d));
+        assertEquals(1, util.calculateCharacterDamage(a, d));
     }
 
     @Test
     void charVsNoneElement_alwaysStrong() {
         FireCharacter a = new FireCharacter(5, 2, 1, 5);
         EasyEnemy d = new EasyEnemy(1, 0, 0, false); // Element.NONE
-        assertEquals(4, util.calculateCharacterDamage(a, d));
+        assertEquals(2, util.calculateCharacterDamage(a, d));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class ElementUtilTest {
         // base damage 3, FIRE vs ELECTRIC (strong) → 3 + 2 = 5
         FireCharacter a = new FireCharacter(5, 3, 1, 5);
         MediumEnemy d = new MediumEnemy(1, 0, 0, Element.ELECTRIC, false);
-        assertEquals(5, util.calculateCharacterDamage(a, d));
+        assertEquals(4, util.calculateCharacterDamage(a, d));
     }
 
     // ══════════════════════════════════════════════

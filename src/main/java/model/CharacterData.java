@@ -1,3 +1,4 @@
+/*
 package model;
 
 public class CharacterData {
@@ -38,3 +39,4 @@ public class CharacterData {
     public int getBombsLeft() { return bombsLeft; }
     public int getMaxBombs()  { return maxBombs; }
 }
+ */

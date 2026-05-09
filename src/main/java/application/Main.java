@@ -14,7 +14,7 @@ public class Main extends Application {
         HomeController home = new HomeController();
         Scene scene = new Scene(home, 900, 600);
         stage.setScene(scene);
-        stage.setTitle("Dodoco Bombtastic");
+        stage.setTitle("Sponge Bomb");
         stage.show();
     }
 
