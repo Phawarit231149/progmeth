@@ -1110,7 +1110,7 @@ public class GameController extends StackPane {
     private HBox buildBottomBar() {
         heartsBox = new HBox(8);
         heartsBox.setAlignment(Pos.CENTER);
-        heartsBox.setPadding(new Insets(10));
+        heartsBox.setPadding(new Insets(10, 210, 10, 0)); // ✅ right padding pushes hearts left toward map center
         updateHearts();
         return heartsBox;
     }

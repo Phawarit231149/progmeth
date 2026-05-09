@@ -20,12 +20,6 @@ public class WaterCharacter extends Character implements Skillable {
     }
 
     @Override
-    public boolean isSkillReady() {
-        return (System.currentTimeMillis() - getLastSkillUseTime())
-                >= (long) COOLDOWN_SECONDS * 1000L;
-    }
-
-    @Override
     public int getCooldown() { return COOLDOWN_SECONDS; }
 
     @Override
