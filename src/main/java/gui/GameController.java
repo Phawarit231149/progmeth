@@ -524,7 +524,7 @@ public class GameController extends StackPane {
             enemyTimer = new Timeline(new KeyFrame(Duration.millis(1000), e -> {
                 spawner.setPlayerPos(playerRow, playerCol);
                 for (Enemy en : enemies) {
-                    en.move(map, seaweeds, hasBomb, enemies, playerRow, playerCol,
+                    en.move(map, seaweeds, enemies, playerRow, playerCol,
                             config.getRows(), config.getCols());
                 }
                 renderGrid();

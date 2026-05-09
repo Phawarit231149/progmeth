@@ -14,9 +14,10 @@ public class WaterCharacter extends Character implements Skillable {
     // ── Skillable ─────────────────────────────
     @Override
     public void useSkill() {
-        if (!isSkillReady()) return;
-        setShield(true);
-        recordSkillUse(); // handled in Character base class
+        if (isSkillReady()){
+            setShield(true);
+            recordSkillUse(); // handled in Character base class
+        }
     }
 
     @Override

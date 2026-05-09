@@ -17,11 +17,11 @@ public class HardEnemy extends Enemy {
     }
 
     @Override
-    public void move(Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb,
+    public void move(Tile[][] map, Seaweed[][] seaweeds,
                      List<Enemy> enemies,
                      int playerRow, int playerCol,
                      int rows, int cols) {
-        moveFollowPlayer(map, seaweeds, hasBomb, enemies,
+        moveFollowPlayer(map, seaweeds, enemies,
                 playerRow, playerCol, rows, cols);
     }
 }

@@ -18,10 +18,12 @@ import java.util.Random;
 public abstract class Enemy {
 
     // ── Direction index constants ─────────────
+    /*
     public static final int DIR_UP    = 0;
     public static final int DIR_DOWN  = 1;
     public static final int DIR_LEFT  = 2;
     public static final int DIR_RIGHT = 3;
+     */
 
     private static final int[] DR = {-1, 1,  0, 0};
     private static final int[] DC = { 0, 0, -1, 1};
@@ -61,14 +63,14 @@ public abstract class Enemy {
      *
      * @param map        tile grid
      * @param seaweeds   seaweed grid
-     * @param hasBomb    bomb grid
+     //* @param hasBomb    bomb grid
      * @param enemies    all enemies (for collision avoidance)
      * @param playerRow  player's current row (used by HARD follow-AI)
      * @param playerCol  player's current col (used by HARD follow-AI)
      * @param rows       grid height
      * @param cols       grid width
      */
-    public abstract void move(Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb,
+    public abstract void move(Tile[][] map, Seaweed[][] seaweeds,
                               List<Enemy> enemies,
                               int playerRow, int playerCol,
                               int rows, int cols);
@@ -78,7 +80,7 @@ public abstract class Enemy {
     /**
      * Continue in the current direction; turn on obstacle; reverse as last resort.
      */
-    protected void moveRandom(Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb,
+    protected void moveRandom(Tile[][] map, Seaweed[][] seaweeds,
                               List<Enemy> enemies, int rows, int cols) {
         int dir = currentDir;
         int r = posY, c = posX;
@@ -118,7 +120,7 @@ public abstract class Enemy {
      * Move toward the player using Manhattan-distance greedy search.
      * Direction order is shuffled to break ties randomly.
      */
-    protected void moveFollowPlayer(Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb,
+    protected void moveFollowPlayer(Tile[][] map, Seaweed[][] seaweeds,
                                     List<Enemy> enemies,
                                     int playerRow, int playerCol,
                                     int rows, int cols) {

@@ -19,9 +19,10 @@ public class FireCharacter extends Character implements Skillable {
     // ── Skillable ─────────────────────────────
     @Override
     public void useSkill() {
-        if (!isSkillReady()) return;
-        teleportArmed = true;
-        recordSkillUse(); // handled in Character base class
+        if (isSkillReady()) {
+            teleportArmed = true;
+            recordSkillUse(); // handled in Character base class
+        }
     }
 
     @Override

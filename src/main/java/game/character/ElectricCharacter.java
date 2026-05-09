@@ -15,8 +15,7 @@ public class ElectricCharacter extends Character implements Skillable {
     // ── Skillable ─────────────────────────────
     @Override
     public void useSkill() {
-        if (!isSkillReady()) return;
-        recordSkillUse(); // handled in Character base class
+        if (isSkillReady()){recordSkillUse();}
     }
 
     @Override

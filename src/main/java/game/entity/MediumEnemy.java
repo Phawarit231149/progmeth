@@ -16,10 +16,10 @@ public class MediumEnemy extends Enemy {
     }
 
     @Override
-    public void move(Tile[][] map, Seaweed[][] seaweeds, boolean[][] hasBomb,
+    public void move(Tile[][] map, Seaweed[][] seaweeds,
                      List<Enemy> enemies,
                      int playerRow, int playerCol,
                      int rows, int cols) {
-        moveRandom(map, seaweeds, hasBomb, enemies, rows, cols);
+        moveRandom(map, seaweeds, enemies, rows, cols);
     }
 }
