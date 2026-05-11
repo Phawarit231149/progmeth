@@ -1,0 +1,667 @@
+@startuml
+class game.util.ScoreManager {
+- int score
+- int goal
++ <<Create>> ScoreManager(int)
++ void addKill(int)
++ boolean hasReachedGoal()
++ void reset()
++ String formatProgress()
++ int getScore()
++ int getGoal()
++ int getRemaining()
+}
+
+
+class game.util.SoundManager {
+- {static} double overallVolume
+- {static} double sfxVolume
+- {static} double musicVolume
+- {static} MediaPlayer bgmPlayer
+- {static} String currentBgmFile
+- {static} AudioClip currentStinger
+- {static} boolean walkActive
+- {static} MediaPlayer walkLoop
+- {static} AudioClip clickClip
+- {static} AudioClip hoverClip
++ {static} double getOverallVolume()
++ {static} double getSfxVolume()
++ {static} double getMusicVolume()
++ {static} void setOverallVolume(double)
++ {static} void setSfxVolume(double)
+- {static} double walkVolume()
++ {static} void setMusicVolume(double)
+- {static} double bgmVolumeScale(String)
++ {static} void playBGM(String)
++ {static} void playOneShot(String)
++ {static} void stopOneShot()
++ {static} void stopBGM()
++ {static} void playSFX(AudioClip,double)
++ {static} void preloadWalk()
++ {static} void startWalkLoop()
++ {static} void stopWalkLoop()
+- {static} AudioClip loadClipLazy(AudioClip,String)
++ {static} void playHover()
++ {static} void playClick()
++ {static} void attachUiSfx(Node)
+}
+
+
+class game.entity.HardEnemy {
++ <<Create>> HardEnemy(int,int,int,Element,boolean)
++ void move(Tile[][],Seaweed[][],List<Enemy>,int,int,int,int)
+}
+
+class game.buff.HealBuff {
+- {static} int HEAL_AMOUNT
++ <<Create>> HealBuff(int,int)
++ void apply(Character)
+}
+
+
+class game.entity.EasyEnemy {
++ <<Create>> EasyEnemy(int,int,int,boolean)
++ void move(Tile[][],Seaweed[][],List<Enemy>,int,int,int,int)
+}
+
+class game.map.Tile {
+# int row
+# int col
++ <<Create>> Tile(int,int)
++ boolean isPassable()
++ int getRow()
++ int getCol()
+}
+
+
+class application.Launcher {
++ {static} void main(String[])
+}
+
+class game.entity.MediumEnemy {
++ <<Create>> MediumEnemy(int,int,int,Element,boolean)
++ void move(Tile[][],Seaweed[][],List<Enemy>,int,int,int,int)
+}
+
+class gui.GameController {
+- StageData config
+- String name
+- Element element
+- Character player
+- int playerRow
+- int playerCol
+- int playerDir
+- Tile[][] map
+- Seaweed[][] seaweeds
+- boolean[][] hasBomb
+- Buff[][] buffMap
+- List<Enemy> enemies
+- EnemySpawner spawner
+- ScoreManager scoreManager
+- ElementUtil elementUtil
+- int hearts
+- int timeLeft
+- int bombsLeft
+- int maxBombs
+- boolean stopCharacter
+- boolean stopEnemy
+- Status gameStatus
+- int maxBombCount
+- int bombRangeCount
+- int bombDamageCount
+- Timeline timer
+- Timeline enemyTimer
+- Timeline spawnTimer
+- Timeline seaweedAnimTimer
+- Timeline skillCooldownTimer
+- Timeline immortalFlicker
+- Timeline phase2AttackTimer
+- {static} int PHASE2_ATTACK_TILE_COUNT
+- {static} long PHASE2_ATTACK_COOLDOWN_MS
+- int seaweedFrame
+- Label killLabel
+- Label timerLabel
+- HBox heartsBox
+- Label bombLabel
+- Button[][] cells
+- double cellSize
+- Label maxBombBadge
+- Label bombRangeBadge
+- Label bombDamageBadge
+- Label shieldBadge
+- Label healBadge
+- Button explodeBtn
+- Button plantBombBtn
+- Button skillBtn
+- Button infoBtn
+- {static} String BTN_TRANSPARENT
+- String normalStyle
+- String pressedStyle
+- String baseStyle
+- Stage infoPopup
+- Stage pausePopup
+- Image[] spongebobImgs
+- Image[] patrickImgs
+- Image[] squidWardImgs
+- Image[] npcImgs
+- Image[] mrKrabImgs
+- Image[] garyImgs
+- Image[] sandyImgs
+- Image[] kingNeptuneImgs
+- Image spawnImg
+- Image rockImg
+- Image woodEdgeImg
+- Image mapBgImg
+- Image teleportImg
+- Image shieldImg
+- Image freezeImg
+- Image bombBtnImg
+- Image boomBtnImg
+- Image currentSkillImg
+- Image[] seaweedImgs
+- Image bombImg
+- Image maxBombImg
+- Image bombRangeImg
+- Image bombDamageImg
+- Image bubbleShieldImg
+- Image healImg
+- AudioClip explodeSfx
+- AudioClip walkSfx
+- java.util.Set<javafx.scene.input.KeyCode> heldMoveKeys
+- boolean walkPlaying
+- {static} java.util.Random RNG
++ <<Create>> GameController(StageData,String)
+- void loadImages()
+- Image[] loadDirectional(String,String,String)
+- void loadAudio()
+- void startWalkSound()
+- void stopWalkSound()
+- Image tryLoadImage(String)
+- AudioClip tryLoadAudio(String)
+- ImageView makeCellImage(Image)
+- StackPane makePlayerCellGraphic(Image)
+- ImageView makeHardEnemyQuadrant(Image,Enemy,int,int)
+- void createPlayer()
+- void setupMap()
+- int[] randomFreeBuffTile(int,int)
+- void startTimer()
+- void startEnemyTimer()
+- void startSpawnTimer()
+- void startSeaweedAnimation()
+- void pauseAll()
+- void resumeAll()
+- void tryMove(int,int)
+- void applyBuffPickup(Buff)
+- void plantBombAtPlayer()
+- void explodeBombs()
+- void applyBlastDamageToPlayer()
+- void applyBlastDamageToEnemies(boolean[][])
+- void checkPlayerEnemyCollision()
+- void damageFromEnemy(Enemy)
+- void triggerPhase2()
+- void startPhase2AttackTimer()
+- List<int[]> rollPhase2AttackTiles()
+- void handleSkillKey()
+- void activateFireTeleport(FireCharacter)
+- void activateWaterShield(WaterCharacter)
+- void activateElectricStun(ElectricCharacter)
+- void handleCellClick(int,int)
+- void startSkillCooldownTimer()
+- void activateShieldBadge()
+- void deactivateShieldBadge()
+- void setupUI()
+- HBox buildTopBar()
+- GridPane buildGrid(double)
+- HBox buildRightPanel()
+- void applyImageGraphic(Button,Image,double)
+- VBox createBombControls()
+- Label makeHintLabel(String,double)
+- HBox buildBottomBar()
+- Stage getOwnerStage()
+- void skillsInformation()
+- void showPauseMenu()
+- Font pauseMenuFont(double)
+- Button createPauseImageButton(String)
+- void renderGrid()
+- void styleCell(int,int)
+- void applyExplosionEffect(boolean[][])
+- void triggerHardEnemyAttack(List<int[]>)
+- void setGridStyle(String)
+- void resetGridStyle()
+- void startImmortalFlicker()
+- void stopImmortalFlicker()
+- Enemy enemyAt(int,int)
+- Image enemyImage(Enemy)
+- Image pickDirImage(Image[],int)
+- Image buffImage(Buff)
+- void updateKillLabel()
+- void updateBombLabel()
+- void updateHearts()
+- void updateSkillButtonUI()
+- void updateBadge(Label,int)
++ ImageView createSkillImage(String)
+- Label createBadgeLabel()
+- StackPane createSkillWithBadge(String,Label)
+- void gameOver()
++ void setGameStatus(Status)
++ int getHearts()
++ void setHearts(int)
++ void setBaseStyle(String)
++ void takeDamage()
+}
+
+
+class gui.GameOverController {
++ <<Create>> GameOverController(Status,StageData,String)
+- Font pixelFont(double)
+- void setupBackground(String)
+}
+
+class game.map.Seaweed {
+- Buff hiddenBuff
+- boolean destroyed
++ <<Create>> Seaweed(int,int)
++ <<Create>> Seaweed(int,int,Buff)
++ boolean isPassable()
++ Buff destroy()
++ boolean isDestroyed()
++ boolean hasHiddenBuff()
+}
+
+
+class game.character.ElectricCharacter {
+- {static} int COOLDOWN_SECONDS
+- {static} long STUN_DURATION_MS
++ <<Create>> ElectricCharacter(int,int,int,int)
++ void useSkill()
++ int getCooldown()
++ {static} long getStunDurationMs()
++ String getDescription()
+}
+
+
+class gui.RuleController {
++ <<Create>> RuleController()
+- Font pixelFont(double)
+- void setupBackground()
+}
+
+enum game.Element {
++  NONE
++  FIRE
++  WATER
++  ELECTRIC
+}
+
+abstract class game.entity.Enemy {
+- {static} int[] DR
+- {static} int[] DC
+- int health
+- int damage
+- int size
+- int posX
+- int posY
+- Element element
+- boolean shielded
+- Level level
+- int currentDir
+- boolean isFreezed
+# {static} Random RNG
++ <<Create>> Enemy(int,int,int,Element,boolean)
++ {abstract}void move(Tile[][],Seaweed[][],List<Enemy>,int,int,int,int)
+# void moveRandom(Tile[][],Seaweed[][],List<Enemy>,int,int)
+# void moveFollowPlayer(Tile[][],Seaweed[][],List<Enemy>,int,int,int,int)
++ boolean canWalk(int,int,Tile[][],Seaweed[][],List<Enemy>,int,int)
++ boolean canWalkHard(int,int,Tile[][],Seaweed[][],List<Enemy>,int,int)
++ boolean occupiesTile(int,int)
++ boolean isInBlastZone(boolean[][],int,int)
++ int getHealth()
++ int getDamage()
++ int getSize()
++ int getPosX()
++ int getPosY()
++ Element getElement()
++ boolean isShielded()
++ Level getLevel()
++ int getCurrentDir()
++ boolean isFreezed()
++ void setHealth(int)
++ void setDamage(int)
++ void setSize(int)
++ void setPosX(int)
++ void setPosY(int)
++ void setElement(Element)
++ void setShielded(boolean)
++ void setLevel(Level)
++ void setCurrentDir(int)
++ void setFreezed(boolean)
+}
+
+
+interface game.character.Skillable {
+~ void useSkill()
+~ boolean isSkillReady()
+~ int getCooldown()
+~ long getLastSkillUseTime()
+}
+
+class game.character.FireCharacter {
+- {static} int COOLDOWN_SECONDS
+- boolean teleportArmed
++ <<Create>> FireCharacter(int,int,int,int)
++ void useSkill()
++ int getCooldown()
++ boolean isTeleportArmed()
++ void cancelTeleport()
++ boolean teleportTo(int,int,Tile,boolean)
++ String getDescription()
+}
+
+
+class gui.HomeController {
+- SettingsController settingsPane
++ <<Create>> HomeController()
+- void setupBackground()
+- void setupUI()
+- Button createImageButton(String)
+}
+
+
+class model.StageData {
+- int level
+- int rows
+- int cols
+- int goal
+- String[] layout
++ {static} String[] MAP_I
++ {static} String[] MAP_II
++ {static} String[] MAP_III
++ {static} String[] MAP_IV
++ {static} String[] MAP_V
++ {static} StageData[] ALL_STAGES
++ <<Create>> StageData(int,int,int,int,String[])
++ char tileAt(int,int)
++ int[] getPlayerSpawn()
++ List<int[]> getEnemySpawns()
++ int getLevel()
++ int getRows()
++ int getCols()
++ int getGoal()
++ String[] getLayout()
+}
+
+
+abstract class game.character.Character {
+# int health
+# int maxHealth
+# int damage
+# int bombRange
+# int maxBombs
+# boolean haveShield
+# boolean immortal
+# int posX
+# int posY
+# Element element
+- int cooldownSeconds
+- long lastSkillUseTime
+- {static} long immortalDuration
+# <<Create>> Character(int,int,int,int,Element)
++ void takeDamage(int)
++ void useSkill()
++ boolean isSkillReady()
+# void recordSkillUse()
++ int getRemainingCooldown()
++ boolean isStrongAgainst(Element)
++ boolean isWeakAgainst(Element)
++ void heal(int)
++ void increaseBombRange(int)
++ void increaseBombDamage(int)
++ void increaseMaxBombs(int)
++ {abstract}String getDescription()
++ int getHealth()
++ int getMaxHealth()
++ int getDamage()
++ int getBombRange()
++ int getMaxBombs()
++ boolean hasShield()
++ int getPosX()
++ int getPosY()
++ Element getElement()
++ boolean isAlive()
++ boolean isImmortal()
++ {static} long getImmortalDuration()
++ long getLastSkillUseTime()
++ void setPos(int,int)
++ void setShield(boolean)
++ void setHealth(int)
++ void setMaxHealth(int)
++ void setDamage(int)
++ void setBombRange(int)
++ void setMaxBombs(int)
++ void setCooldownSeconds(int)
++ void setHaveShield(boolean)
++ void setPosX(int)
++ void setPosY(int)
++ void setElement(Element)
++ boolean setImmortal(boolean)
+}
+
+
+class game.character.WaterCharacter {
+- {static} int COOLDOWN_SECONDS
++ <<Create>> WaterCharacter(int,int,int,int)
++ void useSkill()
++ int getCooldown()
++ String getDescription()
+}
+
+
+class game.buff.BombDamageBuff {
+- {static} int DAMAGE_BONUS
++ <<Create>> BombDamageBuff(int,int)
++ void apply(Character)
+}
+
+
+class game.util.ElementUtil {
++ int calculateCharacterDamage(Character,Enemy)
++ int calculateEnemyDamage(Enemy,Character)
+- boolean isStrongAgainst(Element,Element)
+- boolean isWeakAgainst(Element,Element)
+}
+
+enum gui.Status {
++  WIN
++  LOSE
++  CLEAR
+}
+
+class game.bomb.Bomb {
+- int row
+- int col
+- int range
+- int damage
+- Character owner
+- boolean exploded
++ <<Create>> Bomb(int,int,int,int,Character)
++ void detonate()
++ boolean isExploded()
++ boolean[][] computeBlastZone(Tile[][],Seaweed[][],int,int)
++ int getRow()
++ int getCol()
++ int getRange()
++ int getDamage()
++ Character getOwner()
+}
+
+
+enum game.entity.Level {
++  EASY
++  MEDIUM
++  HARD
+}
+
+class game.buff.BombRangeBuff {
+- {static} int RANGE_BONUS
++ <<Create>> BombRangeBuff(int,int)
++ void apply(Character)
+}
+
+
+class game.entity.EnemySpawner {
+- StageData config
+- List<Enemy> enemies
+- Tile[][] map
+- Seaweed[][] seaweeds
+- boolean[][] hasBomb
+- Element lastSpawnedElement
+- int totalSpawned
+- int stagePhase
+- boolean phase2Started
+- int playerRow
+- int playerCol
+- {static} Random RNG
++ <<Create>> EnemySpawner(StageData,List<Enemy>,Tile[][],Seaweed[][],boolean[][])
++ void setPlayerPos(int,int)
++ void setupInitial()
+- void spawnInitialEasy(int)
+- void spawnInitialMedium(int,boolean)
++ boolean tick()
+- int phase1Cap(int)
++ boolean triggerPhase2()
++ boolean isPhase2Started()
+- void spawnMediumAtSpawnPoint(boolean)
+- void addMedium(int,int,boolean)
+- void spawnHardRandom()
++ boolean isFreeForSpawn(int,int)
+- boolean canHardOccupy(int,int)
+- int[] randomWalkable(int)
+- Element mediumElementForStage()
+- Element hardElementRandom()
+- Element pickWeighted(Element[],double[])
+}
+
+
+abstract class game.buff.Buff {
+# int row
+# int col
++ <<Create>> Buff(int,int)
++ {abstract}void apply(Character)
++ int getRow()
++ int getCol()
++ void setRow(int)
++ void setCol(int)
+}
+
+
+class game.buff.MaxBombBuff {
+- {static} int BOMB_BONUS
++ <<Create>> MaxBombBuff(int,int)
++ void apply(Character)
+}
+
+
+class gui.StageSelectController {
+- int selectedStage
+- Button start
+- Label stageTitle
+- Button[] stageButtons
+- String selectedElement
+- Button lastSelectedCharBtn
+- HBox enemyIconBox
+- ImageView stagePreview
++ <<Create>> StageSelectController()
+- StackPane buildStagePreview()
+- void updateStagePreview(int)
+- void initializeStageSelection()
+- void setupBackground()
+- Font pixelFont(double)
+- Background createWoodBackground()
+- VBox stageSelectBar()
+- void selectStage(int)
+- javafx.scene.shape.Circle getStageRing(Button)
+- VBox stageInformation()
+- void updateEnemyIcons(int)
+- StackPane createEnemyIcon(String,Element)
+- StackPane createElementBadge(Element)
+- void handleCharacterSelect(String,Label,Button)
+- javafx.scene.shape.Circle getRing(Button)
+- Button createSelectStageButton(String,boolean)
+- Button createSelectCharacterButton(String,String,Element)
+- Button createFooterButton(String)
+}
+
+
+class gui.SettingsController {
+- {static} double PANEL_WIDTH
+- {static} double PANEL_HEIGHT
+- Runnable onClose
++ <<Create>> SettingsController()
++ void setOnClose(Runnable)
+- void setupBackground()
+- void setupUI()
+- HBox createRow(String,Slider)
+- Slider createSlider(double)
+- void applyPixelArtSliderSkin(Slider)
+- Button createImageButton(String,double)
+}
+
+
+class game.buff.ShieldBuff {
++ <<Create>> ShieldBuff(int,int)
++ void apply(Character)
+}
+
+class model.GameProgress {
+- {static} Set<Integer> clearedStages
++ {static} void markCleared(int)
++ {static} boolean isCleared(int)
++ {static} boolean isUnlocked(int)
+}
+
+
+class game.map.Rock {
++ <<Create>> Rock(int,int)
++ boolean isPassable()
+}
+
+class gui.ShieldBadgeStyle {
++ {static} String BASE
++ {static} String ACTIVE
++ {static} String INACTIVE
+- <<Create>> ShieldBadgeStyle()
+}
+
+
+class application.Main {
++ void start(Stage)
++ {static} void main(String[])
+}
+
+
+
+game.entity.Enemy <|-- game.entity.HardEnemy
+game.buff.Buff <|-- game.buff.HealBuff
+game.entity.Enemy <|-- game.entity.EasyEnemy
+game.entity.Enemy <|-- game.entity.MediumEnemy
+gui.StackPane <|-- gui.GameController
+javafx.scene.layout.BorderPane <|-- gui.GameOverController
+game.map.Tile <|-- game.map.Seaweed
+game.character.Skillable <|.. game.character.ElectricCharacter
+game.character.Character <|-- game.character.ElectricCharacter
+gui.BorderPane <|-- gui.RuleController
+game.character.Skillable <|.. game.character.FireCharacter
+game.character.Character <|-- game.character.FireCharacter
+javafx.scene.layout.StackPane <|-- gui.HomeController
+game.character.Skillable <|.. game.character.Character
+game.character.Skillable <|.. game.character.WaterCharacter
+game.character.Character <|-- game.character.WaterCharacter
+game.buff.Buff <|-- game.buff.BombDamageBuff
+game.buff.Buff <|-- game.buff.BombRangeBuff
+game.buff.Buff <|-- game.buff.MaxBombBuff
+gui.BorderPane <|-- gui.StageSelectController
+javafx.scene.layout.StackPane <|-- gui.SettingsController
+game.buff.Buff <|-- game.buff.ShieldBuff
+game.map.Tile <|-- game.map.Rock
+javafx.application.Application <|-- application.Main
+@enduml
